@@ -2,7 +2,7 @@ import datetime
 import logging
 import uuid
 
-from kaizen.backend.base import BaseKataBackend
+from kaizen.backend.base import BaseCortexBackend
 from kaizen.config.milvus import milvus_client_settings, milvus_other_settings
 from kaizen.db.sqlite_manager import SQLiteManager
 from kaizen.llm.conflict_resolution.conflict_resolution import resolve_conflicts
@@ -13,9 +13,9 @@ from pymilvus import MilvusClient, CollectionSchema, DataType, FieldSchema
 from sentence_transformers import SentenceTransformer
 
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("katas-db.milvus")
+logger = logging.getLogger("cortex-db.milvus")
 
-class MilvusKataBackend(BaseKataBackend):
+class MilvusCortexBackend(BaseCortexBackend):
     milvus = MilvusClient(**milvus_client_settings.model_dump())
     embedding_model = SentenceTransformer(milvus_other_settings.embedding_model)
 

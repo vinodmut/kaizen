@@ -1,5 +1,5 @@
 """
-Katas MCP Server
+Cortex MCP Server
 
 This server provides a tool to get task-relevant guidelines.
 """
@@ -16,9 +16,9 @@ from kaizen.schema.core import Entity, RecordedEntity
 from kaizen.schema.exceptions import NamespaceNotFoundException
 
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("katas-mcp")
+logger = logging.getLogger("cortex-mcp")
 
-mcp = FastMCP("katas")
+mcp = FastMCP("cortex")
 client = KaizenClient()
 
 
@@ -61,7 +61,7 @@ def save_trajectory(
     trajectory_data: str, task_id: str | None = None
 ) -> list[RecordedEntity]:
     """
-    Save the full agent trajectory to the Kata DB and generate tips
+    Save the full agent trajectory to the Cortex DB and generate tips
 
     Args:
         trajectory_data: A JSON formatted OpenAI conversation.
