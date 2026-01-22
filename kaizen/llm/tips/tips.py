@@ -89,6 +89,19 @@ def parse_openai_agents_trajectory(messages: list[dict]) -> dict:
                     f"Unhandled assistant content type `{type(content)}`"
                 )
 
+        # Extract tool results (observations) - critical for understanding errors and failures
+        if message.get("role") == "tool":
+            content = message.get("content", "")
+            if content:
+                # Truncate long tool outputs but preserve error messages
+                if len(content) > 500:
+                    content = content[:500] + "..."
+                agent_steps.append({
+                    "type": "observation",
+                    "content": content,
+                    "raw": message
+                })
+
     steps_text = []
     for i, step in enumerate(agent_steps[:50], 1):
         step_type = step["type"]

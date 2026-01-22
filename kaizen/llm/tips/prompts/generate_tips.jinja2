@@ -13,11 +13,16 @@ Extract 3-5 actionable tips from this trajectory that would help AI agents perfo
 
 **Guidelines:**
 1. Focus on patterns that worked or mistakes that were made
-2. Be specific to what you observed in this trajectory
-3. Each tip should have:
+2. **Pay special attention to:**
+   - Error messages and failed attempts (permission denied, command not found, etc.)
+   - Recovery strategies that succeeded after failures
+   - Environment constraints discovered (containers, sandboxes, permissions)
+   - Fallback approaches that worked when primary methods failed
+3. Be specific to what you observed in this trajectory
+4. Each tip should have:
    - Clear description of what to do (or avoid)
-   - Why it matters
-   - When to apply it
+   - Why it matters (reference specific errors if applicable)
+   - When to apply it (specific triggers like "when apt-get fails")
 
 {% if not constrained_decoding_supported %}
 **Output Format (JSON):**
