@@ -76,10 +76,14 @@ def parse_openai_agents_trajectory(messages: list[dict]) -> dict:
                                 "raw": assistant_response,
                             }
                         )
-                    else:
-                        raise KaizenException(
-                            f"Unhandled assistant content type in list `{assistant_response['type']}`"
-                        )
+                    # Skip other content types (text, thinking, tool_use are handled in OpenAI format)
+                    # These are already processed in trajectories from claudecowork
+            elif isinstance(content, str):
+                # Empty string content - skip
+                pass
+            elif content is None:
+                # None content - skip
+                pass
             else:
                 raise KaizenException(
                     f"Unhandled assistant content type `{type(content)}`"

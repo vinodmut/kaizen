@@ -86,6 +86,69 @@ uv run kaizen entities search coding_guidelines "error handling"
 uv run kaizen entities list coding_guidelines --type guideline
 ```
 
+### Sync Commands
+
+Sync commands import trajectories from external sources.
+
+#### Claude Cowork Sync
+
+Sync trajectories from Claude Cowork local agent mode sessions:
+
+```bash
+# Sync with default settings
+kaizen sync claudecowork
+
+# Sync with custom sessions directory
+kaizen sync claudecowork --sessions-dir ~/custom/path
+
+# Sync to a specific namespace
+kaizen sync claudecowork --namespace my_namespace
+
+# Limit number of sessions to process
+kaizen sync claudecowork --limit 10
+```
+
+**Options:**
+- `--sessions-dir, -d`: Claude Cowork sessions directory (default: platform-specific)
+  - macOS: `~/Library/Application Support/Claude/local-agent-mode-sessions`
+  - Windows: `%APPDATA%/Claude/local-agent-mode-sessions`
+  - Linux: `~/.config/claude/local-agent-mode-sessions`
+- `--namespace, -n`: Target namespace for storing trajectories
+- `--limit`: Maximum number of sessions to process (default: 100)
+- `--include-errors`: Include sessions with errors
+
+**Environment Variables:**
+- `CLAUDECOWORK_SESSIONS_DIR`: Override the default sessions directory
+
+#### Phoenix Sync
+
+Sync trajectories from Arize Phoenix observability platform:
+
+```bash
+# Sync from Phoenix
+kaizen sync phoenix
+
+# Sync with custom Phoenix URL
+kaizen sync phoenix --url http://localhost:6006
+
+# Sync from a specific project
+kaizen sync phoenix --project my_project
+
+# Sync to a specific namespace
+kaizen sync phoenix --namespace my_namespace
+```
+
+**Options:**
+- `--url, -u`: Phoenix server URL (default: `http://localhost:6006`)
+- `--project, -p`: Phoenix project name (default: `default`)
+- `--namespace, -n`: Target namespace for storing trajectories
+- `--limit`: Maximum number of spans to fetch (default: 100)
+- `--include-errors`: Include failed/error spans
+
+**Environment Variables:**
+- `PHOENIX_URL`: Override the default Phoenix URL
+- `PHOENIX_PROJECT`: Override the default project name
+
 ## Environment Variables
 
 The CLI uses the same environment variables as the MCP server. See the [Configuration](README.md#configuration) section in the main README.

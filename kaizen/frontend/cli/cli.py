@@ -154,6 +154,8 @@ def list_entities(
 
     for entity in entities:
         content = entity.content
+        if not isinstance(content, str):
+            content = f"[{type(content).__name__}] {len(content)} items" if hasattr(content, '__len__') else str(content)
         if len(content) > 60:
             content = content[:57] + "..."
         table.add_row(
@@ -279,6 +281,8 @@ def search_entities(
 
     for entity in entities:
         content = entity.content
+        if not isinstance(content, str):
+            content = f"[{type(content).__name__}] {len(content)} items" if hasattr(content, '__len__') else str(content)
         if len(content) > 60:
             content = content[:57] + "..."
         table.add_row(
@@ -346,6 +350,51 @@ def sync_phoenix(
     console.print(f"[bold]Syncing from Phoenix[/bold]")
     console.print(f"  URL: {syncer.phoenix_url}")
     console.print(f"  Project: {syncer.project}")
+    console.print(f"  Namespace: {syncer.namespace_id}")
+    console.print(f"  Limit: {limit}")
+    console.print()
+
+    try:
+        result = syncer.sync(limit=limit, include_errors=include_errors)
+
+        table = Table(title="Sync Results")
+        table.add_column("Metric", style="cyan")
+        table.add_column("Count", justify="right")
+
+        table.add_row("Trajectories processed", str(result.processed))
+        table.add_row("Trajectories skipped (already synced)", str(result.skipped))
+        table.add_row("Tips generated", str(result.tips_generated))
+        table.add_row("Errors", str(len(result.errors)))
+
+        console.print(table)
+
+        if result.errors:
+            console.print("\n[red]Errors:[/red]")
+            for error in result.errors:
+                console.print(f"  - {error}")
+
+    except Exception as e:
+        console.print(f"[red]Sync failed: {e}[/red]")
+        raise typer.Exit(1)
+
+
+@sync_app.command("claudecowork")
+def sync_claudecowork(
+    sessions_dir: Annotated[Optional[str], typer.Option("--sessions-dir", "-d", help="Claude Cowork sessions directory")] = None,
+    namespace: Annotated[Optional[str], typer.Option("--namespace", "-n", help="Target namespace")] = None,
+    limit: Annotated[int, typer.Option(help="Maximum number of sessions to process")] = 100,
+    include_errors: Annotated[bool, typer.Option("--include-errors", help="Include sessions with errors")] = False,
+):
+    """Sync trajectories from Claude Cowork local agent mode sessions."""
+    from kaizen.sync.claudecowork_sync import ClaudeCoworkSync
+
+    syncer = ClaudeCoworkSync(
+        sessions_dir=sessions_dir,
+        namespace_id=namespace,
+    )
+
+    console.print(f"[bold]Syncing from Claude Cowork[/bold]")
+    console.print(f"  Sessions dir: {syncer.sessions_dir}")
     console.print(f"  Namespace: {syncer.namespace_id}")
     console.print(f"  Limit: {limit}")
     console.print()

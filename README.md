@@ -9,6 +9,7 @@ Kaizen is a system designed to help agents improve over time by learning from th
 - **MCP Server**: Exposes tools to get guidelines and save trajectories.
 - **Conflict Resolution**: Intelligently merges new insights with existing guidelines using LLMs.
 - **Trajectory Analysis**: Automatically analyzes agent trajectories to generate tips and best practices.
+- **Trajectory Sync**: Import trajectories from external sources (Phoenix observability, Claude Cowork sessions).
 - **Milvus Integration**: Uses Milvus (or Milvus Lite) for efficient vector storage and retrieval.
 
 ## Architecture
@@ -67,14 +68,14 @@ npx @modelcontextprotocol/inspector@latest http://127.0.0.1:8201/sse --cli --met
 uv run pytest
 ```
 
-#### Phoenix Sync Tests
+#### Sync Tests
 
-Tests for the Phoenix trajectory sync functionality are **skipped by default** since they require familiarity with the Phoenix integration. To include them:
+Tests for trajectory sync functionality:
 
 ```bash
-# Run all tests including Phoenix tests
-uv run pytest --run-phoenix
+# Run Claude Cowork sync tests
+uv run pytest tests/unit/test_claudecowork_sync.py -v
 
-# Run only Phoenix tests
-uv run pytest -m phoenix
+# Run Phoenix sync tests (skipped by default)
+uv run pytest -m phoenix --run-phoenix
 ```
