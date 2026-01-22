@@ -1,4 +1,4 @@
-You are analyzing an AI agent's execution trajectory to extract actionable tips.
+You are analyzing an AI agent's execution trajectory to extract actionable guidelines.
 
 # Task Information
 **Task:** {{task_instruction}}
@@ -9,20 +9,27 @@ You are analyzing an AI agent's execution trajectory to extract actionable tips.
 {{trajectory_summary}}
 
 # Your Task
-Extract 3-5 actionable tips from this trajectory that would help AI agents perform similar tasks better.
+Extract 3-5 **proactive guidelines** from this trajectory that would help AI agents succeed on similar tasks.
+
+**Critical Instruction - Learn from failures to guide future success:**
+When you see a pattern where the agent tried approach A, failed, then tried approach B and succeeded:
+- **DO NOT** write: "Fall back to B when A fails"
+- **DO** write: "Prefer B over A" or "Use B instead of A"
+
+The goal is to help future agents skip the failed approaches entirely and go straight to what works.
 
 **Guidelines:**
-1. Focus on patterns that worked or mistakes that were made
-2. **Pay special attention to:**
-   - Error messages and failed attempts (permission denied, command not found, etc.)
-   - Recovery strategies that succeeded after failures
-   - Environment constraints discovered (containers, sandboxes, permissions)
-   - Fallback approaches that worked when primary methods failed
-3. Be specific to what you observed in this trajectory
-4. Each tip should have:
-   - Clear description of what to do (or avoid)
-   - Why it matters (reference specific errors if applicable)
-   - When to apply it (specific triggers like "when apt-get fails")
+1. **Reframe failures as proactive recommendations:**
+   - If apt-get/sudo failed due to permissions → recommend Python libraries FIRST
+   - If a system tool wasn't available → recommend the alternative that worked
+   - If an approach hit environment constraints → recommend the constraint-aware approach
+2. **Focus on what worked, stated as the primary approach:**
+   - Bad: "If exiftool fails, use PIL instead"
+   - Good: "In sandboxed environments, use Python libraries (PIL/Pillow) for image metadata extraction"
+3. **Triggers should be situational context, not failure conditions:**
+   - Bad trigger: "When apt-get fails"
+   - Good trigger: "When working in containerized/sandboxed environments"
+4. Be specific about the environment constraints discovered (containers, sandboxes, no root access)
 
 {% if not constrained_decoding_supported %}
 **Output Format (JSON):**
@@ -30,14 +37,14 @@ Extract 3-5 actionable tips from this trajectory that would help AI agents perfo
 {
     "tips": [
         {
-            "content": "Clear, actionable tip",
-            "rationale": "Why this tip helps",
+            "content": "Proactive guideline stating what TO DO (not what to fall back to)",
+            "rationale": "Why this approach works better (reference what failed and why)",
             "category": "strategy|recovery|optimization",
-            "trigger": "When to apply this tip"
+            "trigger": "Situational context when this applies (not a failure condition)"
         }
     ]
 }
 ```
 
-Generate tips now. Return ONLY the JSON, no other text.
+Generate guidelines now. Return ONLY the JSON, no other text.
 {% endif %}
