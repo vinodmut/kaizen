@@ -31,3 +31,27 @@ Test with:
 ```
 What states do I have teammates in? Read the list from the states.txt file.
 ```
+
+## Using the Kaizen Skill
+
+A Claude Code skill is available at `demo/workdir/.claude/skills/kaizen/` that fetches guidelines directly from the Kaizen MCP server.
+
+### Prerequisites
+
+- `httpx` package installed (`pip install httpx`)
+- Kaizen MCP server running on port 8201:
+  ```bash
+  KAIZEN_RETURN_ALL_GUIDELINES=true KAIZEN_BACKEND=filesystem uv run fastmcp run kaizen/frontend/mcp/mcp_server.py --transport http --port 8201
+  ```
+
+### Usage
+
+Invoke the skill in Claude Code:
+```
+/kaizen implement user authentication
+```
+
+Or test the script directly:
+```bash
+python3 demo/workdir/.claude/skills/kaizen/get_guidelines.py "implement error handling"
+```
