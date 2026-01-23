@@ -35,23 +35,36 @@ def get_guidelines(task: str) -> str:
     Get relevant guidelines for a given task.
     Provide a task description and receive applicable best practices and guidelines.
 
+    Set KAIZEN_RETURN_ALL_GUIDELINES=true to return all guidelines regardless of task relevance.
+
     Args:
         task: A description of the task you want guidelines for
     """
-    logger.info(f"Getting guidelines for task: {task}")
     ensure_namespace()
-    # Get relevant guidelines
-    results = client.search_entities(
-        namespace_id=kaizen_config.namespace_id,
-        query=task,
-        filters={"type": "guideline"},
-    )
 
-    # Format the response
-    response_lines = [f"# Guidelines for: {task}\n"]
+    if kaizen_config.return_all_guidelines:
+        logger.info("Getting all guidelines (KAIZEN_RETURN_ALL_GUIDELINES=true)")
+        results = client.search_entities(
+            namespace_id=kaizen_config.namespace_id,
+            query=None,
+            filters={"type": "guideline"},
+            limit=1000,
+        )
+        response_lines = ["# All Guidelines\n"]
+    else:
+        logger.info(f"Getting guidelines for task: {task}")
+        results = client.search_entities(
+            namespace_id=kaizen_config.namespace_id,
+            query=task,
+            filters={"type": "guideline"},
+        )
+        response_lines = [f"# Guidelines for: {task}\n"]
 
     for i, guideline in enumerate(results, 1):
         response_lines.append(f"{i}. {guideline.content}")
+
+    if not results:
+        response_lines.append("No guidelines found.")
 
     return "\n".join(response_lines)
 

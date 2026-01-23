@@ -6,6 +6,7 @@ class KaizenConfig(BaseSettings):
     backend: Literal['milvus', 'filesystem'] = 'milvus'
     namespace_id: str = 'kaizen'
     settings: BaseSettings | None = None
+    return_all_guidelines: bool = False
 
 # to reload settings call kaizen_config.__init__()
 kaizen_config = KaizenConfig()

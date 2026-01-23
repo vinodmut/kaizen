@@ -34,10 +34,28 @@ All configuration variables are prefixed with `KAIZEN_`.
 |----------|-------------------------------------------------------------------------------|------------------------------------------|
 | `KAIZEN_BACKEND` | Backend provider (`milvus` or `filesystem`)                                   | `milvus`                                 |
 | `KAIZEN_NAMESPACE_ID` | Namespace ID for isolation                                                    | `kaizen`                                 |
+| `KAIZEN_RETURN_ALL_GUIDELINES` | Return all guidelines instead of task-specific matches                        | `false`                                  |
 | `KAIZEN_TIPS_MODEL` | Model for generating tips (e.g. `openai/gpt-4o` for proxy with custom models) | `gpt-4o`                                 |
 | `KAIZEN_CONFLICT_RESOLUTION_MODEL` | Model for resolving conflicts (e.g. `openai/gpt-4o` for proxy with custom models)  | `gpt-4o`                                 |
 | `KAIZEN_CUSTOM_LLM_PROVIDER` | LiteLLM provider (use `openai` for proxy with custom models) | `None`                                   |
 | `KAIZEN_EMBEDDING_MODEL` | Embedding model                                                               | `sentence-transformers/all-MiniLM-L6-v2` |
+
+### Guidelines Retrieval
+
+By default, the `get_guidelines` MCP tool returns only guidelines that match the provided task description. Set `KAIZEN_RETURN_ALL_GUIDELINES=true` to return all stored guidelines regardless of task relevance.
+
+```bash
+# Return all guidelines (useful for reviewing all learned patterns)
+export KAIZEN_RETURN_ALL_GUIDELINES=true
+
+# Return only task-matching guidelines (default behavior)
+export KAIZEN_RETURN_ALL_GUIDELINES=false
+```
+
+**When to use `KAIZEN_RETURN_ALL_GUIDELINES=true`:**
+- When you want the agent to consider all learned guidelines upfront
+- For debugging/reviewing what guidelines have been generated
+- When using the filesystem backend (which uses simple text matching instead of semantic search)
 
 ### Milvus Backend Settings
 
