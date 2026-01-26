@@ -120,6 +120,14 @@ Output guidelines in the following JSON format:
 
 ## Resources
 
+### scripts/
+
+**save_guidelines.py**: Saves generated guidelines to the guidelines file
+- Reads JSON with `guidelines` array from stdin
+- Finds existing file or creates new one at `.claude/guidelines.json`
+- Appends new guidelines (deduplicates by content)
+- Prints the actual storage path
+
 ### references/
 
 **guideline_schema.md**: Complete JSON schema reference for guideline structure
@@ -133,6 +141,22 @@ Guidelines extracted by this skill can be:
 - Used by the kaizen system to improve agent behavior
 - Displayed in conversation summaries
 - Retrieved by the `guideline-retrieval` skill
+
+## Saving Guidelines
+
+After generating guidelines JSON, save them using the script:
+
+```bash
+echo '<guidelines_json>' | python3 scripts/save_guidelines.py
+```
+
+The script will:
+- Find an existing guidelines file or create `.claude/guidelines.json`
+- Append new guidelines (skipping duplicates)
+- Print the actual storage path and count
+
+**Environment variables:**
+- `GUIDELINES_FILE`: Override the default storage location
 
 ## Best Practices
 

@@ -38,11 +38,30 @@ Invoke the skill manually or configure a Stop hook to run automatically at conve
 }
 ```
 
+### Saving Guidelines
+
+After generating guidelines, save them using the script:
+
+```bash
+echo '<guidelines_json>' | python3 scripts/save_guidelines.py
+```
+
+The script will:
+- Find an existing guidelines file or create `.claude/guidelines.json`
+- Append new guidelines (skipping duplicates by content)
+- Print the actual storage path and count
+
 ### Guideline Categories
 
 - **strategy**: High-level approach or methodology choices
 - **recovery**: Handling errors, edge cases, or unexpected situations
 - **optimization**: Improving efficiency, performance, or code quality
+
+### Environment Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `GUIDELINES_FILE` | Path to guidelines JSON file | `.claude/guidelines.json` |
 
 ### Hook Configuration
 
