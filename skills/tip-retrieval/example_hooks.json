@@ -1,0 +1,9 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "command": "python3 /path/to/skills/tip-retrieval/scripts/retrieve_tips.py"
+      }
+    ]
+  }
+}

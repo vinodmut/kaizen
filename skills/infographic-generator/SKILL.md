@@ -45,69 +45,7 @@ Claude: [3 paragraphs explaining the solution]
 Extracted Response: "Fixed memory leak by implementing batch processing with context managers"
 ```
 
-### Step 2: Extract Trajectory Tips
-
-Analyze your current conversation to extract actionable guidelines that would help on similar tasks in the future.
-
-**Identify from your conversation:**
-- **Task/Request**: What was the user asking for?
-- **Steps Taken**: What reasoning, actions, and observations occurred?
-- **What Worked**: Which approaches succeeded?
-- **What Failed**: Which approaches didn't work and why?
-
-**Extract 3-5 proactive guidelines following these principles:**
-
-1. **Reframe failures as proactive recommendations:**
-   - If an approach failed due to permissions → recommend the alternative FIRST
-   - If a system tool wasn't available → recommend what worked instead
-   - If an approach hit environment constraints → recommend the constraint-aware approach
-
-2. **Focus on what worked, stated as the primary approach:**
-   - Bad: "If exiftool fails, use PIL instead"
-   - Good: "In sandboxed environments, use Python libraries (PIL/Pillow) for image metadata extraction"
-
-3. **Triggers should be situational context, not failure conditions:**
-   - Bad trigger: "When apt-get fails"
-   - Good trigger: "When working in containerized/sandboxed environments"
-
-**Output tips in JSON format:**
-```json
-{
-  "tips": [
-    {
-      "content": "Proactive guideline stating what TO DO",
-      "rationale": "Why this approach works better",
-      "category": "strategy|recovery|optimization",
-      "trigger": "Situational context when this applies"
-    }
-  ]
-}
-```
-
-**Tip Categories:**
-- **strategy**: High-level approach or methodology choices
-- **recovery**: Handling errors, edge cases, or unexpected situations
-- **optimization**: Improving efficiency, performance, or code quality
-
-**Example - Good vs Bad Tips:**
-
-```
-BAD (reactive):
-{
-  "content": "Fall back to Python PIL when exiftool is not available",
-  "trigger": "When exiftool command fails"
-}
-
-GOOD (proactive):
-{
-  "content": "Use Python PIL/Pillow for image metadata extraction in sandboxed environments",
-  "rationale": "System tools like exiftool may not be available; PIL is always installable via pip",
-  "category": "strategy",
-  "trigger": "When extracting image metadata in containerized or sandboxed environments"
-}
-```
-
-### Step 3: Install Dependencies
+### Step 2: Install Dependencies
 
 The script automatically handles dependency installation. If Pillow is not available, it will be installed with `--break-system-packages` flag:
 
@@ -115,17 +53,16 @@ The script automatically handles dependency installation. If Pillow is not avail
 pip install --break-system-packages Pillow
 ```
 
-### Step 4: Generate Infographic
+### Step 3: Generate Infographic
 
-Execute the generation script with the extracted information and tips:
+Execute the generation script with the extracted information:
 
 ```bash
 python scripts/generate_infographic.py \
     "<request_summary>" \
     "<response_summary>" \
     "output/infographic_<timestamp>.png" \
-    "assets/template_background.png" \
-    '<tips_json>'
+    "assets/template_background.png"
 ```
 
 **Parameters**:
@@ -133,33 +70,23 @@ python scripts/generate_infographic.py \
 - `response_summary`: Claude's response or outcome (string)
 - `output_path`: Where to save the PNG file
 - `template_path`: Optional background template (use provided template or omit for plain background)
-- `tips_json`: Optional JSON string containing tips array (see Step 2 for format)
 
 **Outputs**:
 - `<output_path>`: The infographic PNG image
-- `<output_path_without_extension>_tips.json`: JSON file with all extracted tips (only if tips provided)
 
-### Step 5: Save and Present
+### Step 4: Save and Present
 
 Save the generated infographic to `/mnt/user-data/outputs/` and present it to the user using the `present_files` tool.
 
 ## Quick Start Example
 
 ```bash
-# Generate an infographic for a typical interaction (without tips)
+# Generate an infographic for a typical interaction
 python scripts/generate_infographic.py \
     "How does machine learning work?" \
     "Machine learning enables systems to learn from data and improve performance without explicit programming through pattern recognition and statistical methods." \
     output/ml_summary.png \
     assets/template_background.png
-
-# Generate an infographic with tips
-python scripts/generate_infographic.py \
-    "Debug Python CSV processing code" \
-    "Fixed memory leak by implementing batch processing with context managers" \
-    output/debug_summary.png \
-    assets/template_background.png \
-    '{"tips":[{"content":"Use context managers for file operations","rationale":"Ensures proper resource cleanup","category":"strategy","trigger":"When processing large files"}]}'
 ```
 
 ## Customization
@@ -212,31 +139,21 @@ For detailed customization of colors, fonts, layout, and dimensions, see `refere
 
 ### Infographic Image
 - **Format**: PNG
-- **Dimensions**: 1200x1000px (6:5 aspect ratio when tips included, 1200x800px without)
+- **Dimensions**: 1200x800px (3:2 aspect ratio)
 - **Quality**: 95% (high quality, optimized file size)
 - **Typical file size**: 200-500KB
 - **Color space**: RGB
-
-### Tips JSON File
-- **Format**: JSON
-- **Filename**: `<infographic_name>_tips.json`
-- **Created**: Only when tips are provided
-- **Contents**: Full tips array with content, rationale, category, and trigger for each tip
 
 ## Integration Pattern
 
 For seamless integration into Claude's workflow:
 
 ```python
-import json
 from datetime import datetime
 
 # After processing user request
 request_key = extract_core_request(user_message)  # Max 200 chars
 response_key = extract_main_outcome(claude_response)  # Max 300 chars
-
-# Extract tips from conversation trajectory
-tips = extract_trajectory_tips(conversation)  # Returns list of tip dicts
 
 # Generate visual summary
 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -252,13 +169,9 @@ cmd = [
     "assets/template_background.png"
 ]
 
-# Add tips if available
-if tips:
-    cmd.append(json.dumps({"tips": tips}))
-
 subprocess.run(cmd)
 
-# Present to user (also creates _tips.json file if tips provided)
+# Present to user
 present_files([output_path])
 ```
 

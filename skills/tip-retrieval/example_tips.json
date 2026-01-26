@@ -1,0 +1,34 @@
+{
+  "tips": [
+    {
+      "content": "Use Python PIL/Pillow for image metadata extraction in sandboxed environments",
+      "rationale": "System tools like exiftool may not be available; PIL is always installable via pip",
+      "category": "strategy",
+      "trigger": "When extracting image metadata in containerized or sandboxed environments"
+    },
+    {
+      "content": "Implement batch processing with context managers for large file operations",
+      "rationale": "Prevents memory leaks and ensures proper resource cleanup",
+      "category": "optimization",
+      "trigger": "When processing files larger than available memory"
+    },
+    {
+      "content": "Check for existing lock files before choosing a package manager",
+      "rationale": "Projects may already have yarn.lock or package-lock.json indicating preferred tooling",
+      "category": "strategy",
+      "trigger": "When installing dependencies in an unfamiliar project"
+    },
+    {
+      "content": "Write outputs to user-writable directories (~/Documents, /tmp, or project-local paths)",
+      "rationale": "System directories often require elevated permissions; user directories are always accessible",
+      "category": "strategy",
+      "trigger": "When generating output files in any environment"
+    },
+    {
+      "content": "Validate file paths and permissions before batch processing operations",
+      "rationale": "Early validation prevents partial processing failures mid-operation",
+      "category": "recovery",
+      "trigger": "When processing multiple files in a pipeline"
+    }
+  ]
+}
