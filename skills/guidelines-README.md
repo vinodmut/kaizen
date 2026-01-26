@@ -83,7 +83,7 @@ Add to `.claude/settings.json` to auto-generate guidelines when conversations en
 
 ## guideline-retrieval
 
-Retrieves relevant guidelines from a knowledge base using LLM-based semantic matching. Injects context-appropriate guidelines before task execution.
+Outputs all guidelines for Claude to filter and apply. Injects context-appropriate guidelines before task execution without requiring a separate API key.
 
 ### Usage
 
@@ -115,9 +115,7 @@ Store guidelines in `.claude/guidelines.json`:
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `ANTHROPIC_API_KEY` | API key for LLM-based retrieval | Required |
 | `GUIDELINES_FILE` | Path to guidelines JSON file | `.claude/guidelines.json` |
-| `MAX_GUIDELINES` | Maximum guidelines to return | `5` |
 
 ### Hook Configuration
 
@@ -140,9 +138,8 @@ Add to `.claude/settings.json` to inject guidelines on every prompt:
 1. Hook fires when user submits a prompt
 2. Script reads prompt from stdin (JSON with `prompt` field)
 3. Loads all guidelines from the guidelines file
-4. Sends prompt + guidelines to LLM to identify relevant ones
-5. Outputs relevant guidelines to stdout
-6. Claude receives guidelines as additional context
+4. Outputs all guidelines to stdout in a formatted list
+5. Claude receives guidelines as additional context and filters for relevance
 
 ---
 
@@ -176,12 +173,6 @@ Add to `.claude/settings.json`:
     ]
   }
 }
-```
-
-### 3. Set environment variable
-
-```bash
-export ANTHROPIC_API_KEY="your-api-key"
 ```
 
 ---

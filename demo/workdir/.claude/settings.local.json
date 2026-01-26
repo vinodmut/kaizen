@@ -28,7 +28,9 @@
       "WebFetch(domain:www.eanesisd.net)",
       "WebFetch(domain:www.kxan.com)",
       "WebFetch(domain:www.kvue.com)",
-      "WebFetch(domain:www.weather.gc.ca)"
+      "WebFetch(domain:www.weather.gc.ca)",
+      "WebFetch(domain:www.theweathernetwork.com)",
+      "WebFetch(domain:weather.gc.ca)"
     ],
     "deny": [
       "Read(../demo/**)"
