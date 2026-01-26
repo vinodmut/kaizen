@@ -7,7 +7,16 @@
       "mcp__filesystem__read_text_file",
       "mcp__guidelines__save_trajectory",
       "mcp__filesystem__list_directory",
-      "mcp__filesystem__write_file"
+      "mcp__filesystem__write_file",
+      "Skill(kaizen)",
+      "Bash(uv run:*)",
+      "Bash(python3:*)",
+      "Bash(pip install:*)",
+      "Bash(pip3 install:*)",
+      "Bash(exiftool:*)",
+      "Bash(python:*)",
+      "Bash(ls:*)",
+      "WebSearch"
     ],
     "deny": [
       "Read(../demo/**)"
