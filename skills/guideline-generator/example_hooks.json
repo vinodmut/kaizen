@@ -1,0 +1,9 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "command": "python3 /path/to/skills/guideline-generator/scripts/save_guidelines.py"
+      }
+    ]
+  }
+}

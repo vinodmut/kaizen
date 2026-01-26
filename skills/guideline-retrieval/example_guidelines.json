@@ -1,5 +1,5 @@
 {
-  "tips": [
+  "guidelines": [
     {
       "content": "Use Python PIL/Pillow for image metadata extraction in sandboxed environments",
       "rationale": "System tools like exiftool may not be available; PIL is always installable via pip",

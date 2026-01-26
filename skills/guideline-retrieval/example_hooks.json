@@ -1,0 +1,9 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "command": "python3 /path/to/skills/guideline-retrieval/scripts/retrieve_guidelines.py"
+      }
+    ]
+  }
+}

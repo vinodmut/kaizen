@@ -1,13 +1,29 @@
 ---
-name: trajectory-tips
-description: Extract actionable guidelines from conversation trajectories. Analyzes user requests, steps taken, successes and failures to generate proactive tips that help on similar future tasks.
+name: guideline-generator
+description: Extract actionable guidelines from conversation trajectories. Analyzes user requests, steps taken, successes and failures to generate proactive guidelines that help on similar future tasks.
 ---
 
-# Trajectory Tips Extractor
+# Guideline Generator
 
 ## Overview
 
 This skill analyzes conversation trajectories to extract actionable guidelines that would help on similar tasks in the future. It transforms reactive learnings (what failed) into proactive recommendations (what to do first).
+
+## Hook Integration
+
+This skill is designed to be triggered automatically via a **Stop hook** at the end of conversations:
+
+```json
+{
+  "hooks": {
+    "Stop": [{
+      "command": "python3 /path/to/guideline-generator/scripts/save_guidelines.py"
+    }]
+  }
+}
+```
+
+The Stop hook receives conversation context and can extract guidelines to append to the knowledge base.
 
 ## Workflow
 
@@ -20,7 +36,7 @@ Identify from your current conversation:
 - **What Worked**: Which approaches succeeded?
 - **What Failed**: Which approaches didn't work and why?
 
-### Step 2: Extract Tips
+### Step 2: Extract Guidelines
 
 Extract 3-5 proactive guidelines following these principles:
 
@@ -37,13 +53,13 @@ Extract 3-5 proactive guidelines following these principles:
    - Bad trigger: "When apt-get fails"
    - Good trigger: "When working in containerized/sandboxed environments"
 
-### Step 3: Output Tips JSON
+### Step 3: Output Guidelines JSON
 
-Output tips in the following JSON format:
+Output guidelines in the following JSON format:
 
 ```json
 {
-  "tips": [
+  "guidelines": [
     {
       "content": "Proactive guideline stating what TO DO",
       "rationale": "Why this approach works better",
@@ -54,7 +70,7 @@ Output tips in the following JSON format:
 }
 ```
 
-## Tip Categories
+## Guideline Categories
 
 - **strategy**: High-level approach or methodology choices
 - **recovery**: Handling errors, edge cases, or unexpected situations
@@ -62,7 +78,7 @@ Output tips in the following JSON format:
 
 ## Examples
 
-### Good vs Bad Tips
+### Good vs Bad Guidelines
 
 **BAD (reactive):**
 ```json
@@ -106,22 +122,22 @@ Output tips in the following JSON format:
 
 ### references/
 
-**tip_schema.md**: Complete JSON schema reference for tip structure
+**guideline_schema.md**: Complete JSON schema reference for guideline structure
 
-**good_bad_examples.md**: Extended collection of good vs bad tip examples across different scenarios
+**guideline_examples.md**: Extended collection of good vs bad guideline examples across different scenarios
 
 ## Integration
 
-Tips extracted by this skill can be:
-- Stored in a knowledge base for future retrieval
+Guidelines extracted by this skill can be:
+- Stored in `.claude/guidelines.json` for future retrieval
 - Used by the kaizen system to improve agent behavior
 - Displayed in conversation summaries
-- Fed into guidelines systems
+- Retrieved by the `guideline-retrieval` skill
 
 ## Best Practices
 
-1. **Be specific**: Generic tips are less useful than context-specific ones
-2. **Be actionable**: Tips should clearly state what to do
+1. **Be specific**: Generic guidelines are less useful than context-specific ones
+2. **Be actionable**: Guidelines should clearly state what to do
 3. **Include rationale**: Explain why the approach works
 4. **Use situational triggers**: Context-based triggers are more useful than failure-based ones
-5. **Limit to 3-5 tips**: Focus on the most impactful learnings
+5. **Limit to 3-5 guidelines**: Focus on the most impactful learnings

@@ -1,4 +1,4 @@
-# Tip JSON Schema Reference
+# Guideline JSON Schema Reference
 
 ## Schema Definition
 
@@ -6,9 +6,9 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
-  "required": ["tips"],
+  "required": ["guidelines"],
   "properties": {
-    "tips": {
+    "guidelines": {
       "type": "array",
       "items": {
         "type": "object",
@@ -27,11 +27,11 @@
           "category": {
             "type": "string",
             "enum": ["strategy", "recovery", "optimization"],
-            "description": "Classification of the tip type"
+            "description": "Classification of the guideline type"
           },
           "trigger": {
             "type": "string",
-            "description": "Situational context when this tip applies",
+            "description": "Situational context when this guideline applies",
             "maxLength": 150
           }
         }
@@ -52,7 +52,7 @@ The main actionable guideline. Should be:
 - Proactive (stating what TO DO, not what to avoid)
 
 ### rationale (optional but recommended)
-Explains why this approach works better than alternatives. Helps users understand the reasoning and apply the tip appropriately.
+Explains why this approach works better than alternatives. Helps users understand the reasoning and apply the guideline appropriately.
 
 ### category (required)
 One of three values:
@@ -64,7 +64,7 @@ One of three values:
 | `optimization` | Performance and efficiency | "Use batch processing for large datasets" |
 
 ### trigger (required)
-Describes the situational context when this tip applies. Should be:
+Describes the situational context when this guideline applies. Should be:
 - Based on context, not failure conditions
 - Specific enough to be useful
 - General enough to apply broadly
@@ -73,7 +73,7 @@ Describes the situational context when this tip applies. Should be:
 
 ```json
 {
-  "tips": [
+  "guidelines": [
     {
       "content": "Use Python PIL/Pillow for image metadata extraction in sandboxed environments",
       "rationale": "System tools like exiftool may not be available; PIL is always installable via pip",

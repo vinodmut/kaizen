@@ -1,6 +1,6 @@
-# Good vs Bad Tip Examples
+# Good vs Bad Guideline Examples
 
-This reference provides extended examples of well-written vs poorly-written tips across various scenarios.
+This reference provides extended examples of well-written vs poorly-written guidelines across various scenarios.
 
 ## Environment & Tooling
 
