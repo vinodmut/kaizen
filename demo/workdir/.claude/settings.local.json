@@ -16,7 +16,18 @@
       "Bash(exiftool:*)",
       "Bash(python:*)",
       "Bash(ls:*)",
-      "WebSearch"
+      "WebSearch",
+      "WebFetch(domain:www.austinisd.org)",
+      "WebFetch(domain:www.roundrockisd.org)",
+      "WebFetch(domain:www.pfisd.net)",
+      "WebFetch(domain:www.leanderisd.org)",
+      "WebFetch(domain:www.hayscisd.net)",
+      "WebFetch(domain:www.dvisd.net)",
+      "WebFetch(domain:www.manorisd.net)",
+      "WebFetch(domain:www.ltisdschools.org)",
+      "WebFetch(domain:www.eanesisd.net)",
+      "WebFetch(domain:www.kxan.com)",
+      "WebFetch(domain:www.kvue.com)"
     ],
     "deny": [
       "Read(../demo/**)"
