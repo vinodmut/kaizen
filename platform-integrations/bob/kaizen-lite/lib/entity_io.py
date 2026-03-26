@@ -272,13 +272,15 @@ def write_entity_file(directory, entity):
         fd = None
 
         # Atomically claim the target using O_EXCL to detect races
-        target = unique_filename(type_dir, slug)
-        try:
-            claim_fd = os.open(str(target), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
-            os.close(claim_fd)
-        except FileExistsError:
-            # Another writer beat us — re-discover a free name
+        while True:
             target = unique_filename(type_dir, slug)
+            try:
+                claim_fd = os.open(str(target), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+                os.close(claim_fd)
+                break
+            except FileExistsError:
+                # Another writer beat us — loop to try the next candidate
+                continue
 
         os.rename(tmp_path, target)
         return target
