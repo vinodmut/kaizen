@@ -49,9 +49,13 @@ Principles:
 
 3. **For retry loops, recommend the final working approach directly** — eliminate trial-and-error by encoding the answer
 
-### Step 4: Save Entities
+### Step 4: Save Trajectory
 
-Output entities as JSON and pipe to the save script:
+Use the **save-trajectory** skill to save the full conversation trajectory. Read and follow that skill's SKILL.md instructions exactly. **Capture the trajectory file path** from the output (e.g., `.evolve/trajectories/trajectory_2025-01-15T10-30-00.json`) — you will need it in Step 5.
+
+### Step 5: Save Entities
+
+Output entities as JSON and pipe to the save script. Include the `trajectory` field with the path from Step 4:
 
 ```bash
 echo '{
@@ -60,7 +64,8 @@ echo '{
       "content": "Proactive entity stating what TO DO",
       "rationale": "Why this approach works better",
       "type": "guideline",
-      "trigger": "Situational context when this applies"
+      "trigger": "Situational context when this applies",
+      "trajectory": ".evolve/trajectories/trajectory_2025-01-15T10-30-00.json"
     }
   ]
 }' | python3 .bob/skills/evolve-learn/scripts/save_entities.py
@@ -71,10 +76,6 @@ The script will:
 - Write each entity as a markdown file in `{type}/` subdirectories
 - Deduplicate against existing entities
 - Display confirmation with the total count
-
-### Step 5: Save Trajectory
-
-After saving entities, use the **save-trajectory** skill to save the full conversation trajectory. Read and follow that skill's SKILL.md instructions exactly.
 
 ## Best Practices
 
