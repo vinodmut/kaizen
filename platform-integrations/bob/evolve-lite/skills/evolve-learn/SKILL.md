@@ -72,6 +72,10 @@ The script will:
 - Deduplicate against existing entities
 - Display confirmation with the total count
 
+### Step 5: Save Trajectory
+
+After saving entities, use the **save-trajectory** skill to save the full conversation trajectory. Read and follow that skill's SKILL.md instructions exactly.
+
 ## Best Practices
 
 1. **Prioritize error-derived entities**: Errors are the highest-signal source of learnings
