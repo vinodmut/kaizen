@@ -106,32 +106,22 @@ Wrap the messages array in a trajectory envelope:
 - **model**: Use the exact model ID from the current session's environment context (e.g., the value after "You are powered by the model named ..."). Do not hardcode a default — always read it from the session.
 - **timestamp**: Current ISO 8601 timestamp
 
-### Step 5: Save via Helper Script
+### Step 5: Save to File
 
-Write the trajectory JSON to a temporary file, then pass the file path to the helper script:
+Save the trajectory JSON to `.evolve/trajectories/` with a timestamped filename:
 
-1. Write the JSON to `.evolve/tmp/trajectory_input.json` (create the directory if needed)
-2. Run the helper script with the file path as an argument:
+1. Create the output directory: `mkdir -p .evolve/trajectories`
+2. Generate the filename using the current timestamp: `trajectory_YYYY-MM-DDTHH-MM-SS.json`
+3. Write the JSON to the file using your file-writing tool (e.g., `write_to_file`)
 
-```bash
-tmp=.evolve/tmp/trajectory_input.json; mkdir -p .evolve/tmp; trap 'rm -f "$tmp"' EXIT; python3 .bob/skills/evolve-save-trajectory/scripts/save_trajectory.py "$tmp"
-```
-
-**Important**: Do NOT use inline Python scripts, heredocs, or stdin piping to pass the trajectory JSON. Always write to a temp file first. This avoids escaping issues with backslashes, quotes, and newlines in conversation content.
-
-The script will:
-- Read the trajectory JSON from the provided file path
-- Create the `.evolve/trajectories/` directory if needed
-- Generate a timestamped filename (`trajectory_YYYY-MM-DDTHH-MM-SS.json`)
-- Write the formatted JSON
-- Print confirmation with file path and message count
+**Important**: Do NOT use heredocs or stdin piping to write the trajectory JSON. Use your file-writing tool directly. This avoids escaping issues with backslashes, quotes, and newlines in conversation content.
 
 ## Example Output
 
-After saving, you should see output like:
+After saving, confirm with:
 
 ```text
-Trajectory saved: /path/to/project/.evolve/trajectories/trajectory_2025-01-15T10-30-00.json
+Trajectory saved: .evolve/trajectories/trajectory_2025-01-15T10-30-00.json
 Messages: 12
 ```
 
