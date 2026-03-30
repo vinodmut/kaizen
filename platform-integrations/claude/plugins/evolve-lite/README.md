@@ -91,7 +91,7 @@ Entities are stored as individual markdown files in `.evolve/entities/`, nested 
 
 ```
 .evolve/entities/
-  guideline/
+  guidelines/
     use-python-pil-for-image-metadata-extraction.md
     cache-api-responses-locally.md
 ```

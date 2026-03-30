@@ -23,7 +23,7 @@ Entities are stored as individual markdown files in `.evolve/entities/`, nested 
 
 ```
 .evolve/entities/
-  guideline/
+  guidelines/
     use-context-managers-for-file-operations.md
     cache-api-responses-locally.md
 ```

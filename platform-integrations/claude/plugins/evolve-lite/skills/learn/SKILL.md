@@ -188,6 +188,10 @@ Entities stored in: /path/to/project/.evolve/entities
 }
 ```
 
+### Step 6: Save Trajectory
+
+After saving entities, use the **kaizen-save-trajectory** skill to save the full conversation trajectory. Read and follow that skill's SKILL.md instructions exactly.
+
 ## Best Practices
 
 1. **Prioritize error-derived entities**: Errors are the highest-signal source of learnings — extract entities from them first

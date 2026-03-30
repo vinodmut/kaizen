@@ -8,6 +8,8 @@ customModes:
 
       WORKFLOW (4 steps, strict order):
 
+
+
       0. ⚠️ BEFORE FIRST USE (MANDATORY): Read the skill SKILL.md files from .bob/skills/ directory.
          - Read .bob/skills/evolve-recall/SKILL.md
          - Read .bob/skills/evolve-learn/SKILL.md

@@ -513,6 +513,7 @@ def install_bob(source_dir, target_dir, mode="lite"):
     # Skills
     copy_tree(bob_source_lite / "skills" / "evolve-learn",  bob_target / "skills" / "evolve-learn")
     copy_tree(bob_source_lite / "skills" / "evolve-recall", bob_target / "skills" / "evolve-recall")
+    copy_tree(bob_source_lite / "skills" / "evolve-save-trajectory", bob_target / "skills" / "evolve-save-trajectory")
     success("Copied Bob skills")
 
     # Commands
@@ -548,8 +549,10 @@ def uninstall_bob(target_dir, mode="full"):
     remove_dir(bob_target / "evolve-lib")
     remove_dir(bob_target / "skills" / "evolve-learn")
     remove_dir(bob_target / "skills" / "evolve-recall")
+    remove_dir(bob_target / "skills" / "evolve-save-trajectory")
     remove_file(bob_target / "commands" / "evolve:learn.md")
     remove_file(bob_target / "commands" / "evolve:recall.md")
+    remove_file(bob_target / "commands" / "evolve:save-trajectory.md")
     remove_yaml_custom_mode(bob_target / "custom_modes.yaml", BOB_SLUG)
     remove_json_key(bob_target / "mcp.json", ["mcpServers", "evolve"])
 
@@ -562,6 +565,7 @@ def status_bob(target_dir):
     print(f"    evolve-lib/entity_io  : {'✓' if (bob_target / 'evolve-lib' / 'entity_io.py').is_file() else '✗'}")
     print(f"    skills/evolve-learn  : {'✓' if (bob_target / 'skills' / 'evolve-learn').is_dir() else '✗'}")
     print(f"    skills/evolve-recall : {'✓' if (bob_target / 'skills' / 'evolve-recall').is_dir() else '✗'}")
+    print(f"    skills/evolve-save-trajectory : {'✓' if (bob_target / 'skills' / 'evolve-save-trajectory').is_dir() else '✗'}")
     print(f"    commands/            : {'✓' if (bob_target / 'commands' / 'evolve:learn.md').is_file() else '✗'}")
     print(f"    custom_modes.yaml    : {'✓' if (bob_target / 'custom_modes.yaml').is_file() else '✗'}")
 
