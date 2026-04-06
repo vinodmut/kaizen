@@ -50,7 +50,14 @@ You can also manually invoke `/evolve-lite:learn` at any time.
 
 > **UX note:** The Stop hook has an empty matcher (`""`), meaning it fires after *every* task and can add up to ~2 minutes of delay per interaction (the hook's `timeout` is 120s). It also invokes the Claude API on each stop, which incurs additional cost. Learned entities are stored as markdown files in `.evolve/entities/{type}/` — inspect or remove them there at any time.
 >
-> **To disable or limit automatic learning**, edit `hooks/hooks.json` inside the plugin directory:
+> **To disable automatic learning or recall**, create `.evolve/config.toml` in your project and set the relevant flag:
+>
+> ```toml
+> auto_learn = false   # skip the Stop-hook learn step
+> auto_recall = false  # skip entity injection on each prompt
+> ```
+>
+> Both flags default to `true`, so existing installs are unaffected. You can also limit automatic learning without config by editing `hooks/hooks.json` inside the plugin directory:
 > - Remove the entire `"Stop"` block to turn off auto-learning entirely.
 > - Set a specific `"matcher"` string to restrict triggering to prompts that contain that text.
 > - Reduce `"timeout"` to cap how long the learn step can run.
