@@ -255,7 +255,7 @@ Use Python stdlib (struct module) to manually parse JPEG EXIF/GPS metadata when 
 In sandboxed environments, neither system tools (exiftool) nor third-party libraries (PIL/Pillow) may be installed. Python stdlib is always available.
 ```
 
-Override the storage location with the `EVOLVE_ENTITIES_DIR` environment variable.
+Override the storage root with the `EVOLVE_DIR` environment variable (entities live at `$EVOLVE_DIR/entities/`).
 
 ## Tradeoffs
 
