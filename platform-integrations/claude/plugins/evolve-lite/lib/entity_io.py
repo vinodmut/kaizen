@@ -9,6 +9,7 @@ import getpass
 import os
 import re
 import tempfile
+import tomllib
 from pathlib import Path
 
 
@@ -83,6 +84,29 @@ def get_default_entities_dir():
     base = get_evolve_dir() / "entities"
     base.mkdir(parents=True, exist_ok=True)
     return base.resolve()
+
+
+# ---------------------------------------------------------------------------
+# Config
+# ---------------------------------------------------------------------------
+
+
+def load_config():
+    """Load plugin config from .evolve/config.toml.
+
+    Uses :func:`get_evolve_dir` to locate the file.
+
+    Returns:
+        dict (empty if file not found or invalid TOML).
+    """
+    config_path = get_evolve_dir() / "config.toml"
+    if not config_path.is_file():
+        return {}
+    try:
+        with open(config_path, "rb") as f:
+            return tomllib.load(f)
+    except (tomllib.TOMLDecodeError, OSError):
+        return {}
 
 
 # ---------------------------------------------------------------------------

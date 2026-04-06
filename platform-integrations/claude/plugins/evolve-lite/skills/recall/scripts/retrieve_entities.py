@@ -8,7 +8,7 @@ from pathlib import Path
 
 # Add lib to path so we can import entity_io
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent / "lib"))
-from entity_io import find_entities_dir, load_all_entities, log as _log
+from entity_io import find_entities_dir, load_all_entities, load_config, log as _log
 
 
 def log(message):
@@ -58,6 +58,11 @@ Review these entities and apply any relevant ones:
 
 
 def main():
+    config = load_config()
+    if not config.get("auto_recall", True):
+        log("auto_recall disabled in config, skipping retrieval")
+        return
+
     # Read input from stdin (hook provides JSON with prompt)
     try:
         input_data = json.load(sys.stdin)

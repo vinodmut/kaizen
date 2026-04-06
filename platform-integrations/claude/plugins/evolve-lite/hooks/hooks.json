@@ -17,7 +17,7 @@
         "hooks": [
           {
             "type": "agent",
-            "prompt": "Run the evolve-lite:learn skill, unless stop_hook_active is set in $ARGUMENTS.",
+            "prompt": "Check if .evolve/config.toml exists and has auto_learn = false — if so, skip. Otherwise run the evolve-lite:learn skill, unless stop_hook_active is set in $ARGUMENTS.",
             "timeout": 120
           }
         ]
