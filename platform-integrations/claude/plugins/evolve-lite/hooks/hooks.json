@@ -19,6 +19,11 @@
             "type": "agent",
             "prompt": "Run the evolve-lite:learn skill, unless stop_hook_active is set in $ARGUMENTS.",
             "timeout": 120
+          },
+          {
+            "type": "agent",
+            "prompt": "Run the evolve-lite:save-trajectory skill, unless stop_hook_active is set in $ARGUMENTS.",
+            "timeout": 60
           }
         ]
       }
