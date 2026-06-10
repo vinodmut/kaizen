@@ -29,6 +29,11 @@ def main() -> int:
     parser.add_argument("--manifest-split", default="train")
     parser.add_argument("--out-dir", required=True, type=Path)
     parser.add_argument("--allow-empty", action="store_true", help="Write files even when no messages were found.")
+    parser.add_argument(
+        "--keep-prompt-examples",
+        action="store_true",
+        help="Keep AppWorld few-shot prompt examples in the normalized message list.",
+    )
     args = parser.parse_args()
 
     experiment_dir = args.appworld_root / "experiments" / "outputs" / args.experiment_name
@@ -42,7 +47,13 @@ def main() -> int:
     written = []
     skipped = []
     for task_id in task_ids:
-        normalized = normalize_task(experiment_dir, args.experiment_name, task_id, evaluations.get(task_id, {}))
+        normalized = normalize_task(
+            experiment_dir,
+            args.experiment_name,
+            task_id,
+            evaluations.get(task_id, {}),
+            drop_prompt_examples=not args.keep_prompt_examples,
+        )
         if not normalized["openai_chat_completion"]["messages"] and not args.allow_empty:
             skipped.append({"task_id": task_id, "reason": "no lm_calls.jsonl or logger.jsonl messages"})
             continue
@@ -72,6 +83,7 @@ def normalize_task(
     experiment_name: str,
     task_id: str,
     evaluation: dict[str, Any],
+    drop_prompt_examples: bool,
 ) -> dict[str, Any]:
     task_dir = experiment_dir / "tasks" / task_id
     logs_dir = task_dir / "logs"
@@ -84,6 +96,8 @@ def normalize_task(
     if not messages:
         messages = messages_from_logger(logger_events)
     append_trailing_environment(messages, logger_events)
+    if drop_prompt_examples:
+        messages = drop_appworld_prompt_examples(messages)
 
     session_id = f"appworld__{experiment_name}__{task_id}"
     model = infer_model(lm_calls)
@@ -133,6 +147,7 @@ def normalize_task(
             "lm_calls_path": str(logs_dir / "lm_calls.jsonl"),
             "logger_path": str(logs_dir / "logger.jsonl"),
             "api_calls_path": str(logs_dir / "api_calls.jsonl"),
+            "prompt_examples_dropped": drop_prompt_examples,
         },
     }
     return normalized
@@ -172,6 +187,34 @@ def append_trailing_environment(messages: list[dict[str, Any]], logger_events: l
     wrapped = wrap_environment_output(last_event.get("content") or "")
     if not any(message.get("content") == wrapped for message in messages[-3:]):
         messages.append({"role": "user", "content": wrapped})
+
+
+def drop_appworld_prompt_examples(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Remove AppWorld few-shot examples before the actual task.
+
+    AppWorld's ReAct prompt is a role-tagged transcript with demo turns followed
+    by key instructions and the real task. `lm_calls.jsonl` records the full
+    prompt, but wiki extraction should not treat demo turns as trajectory
+    evidence. Keep the key-instructions block when present, then the actual task
+    and subsequent agent/environment turns.
+    """
+    actual_task_index = None
+    for index, message in enumerate(messages):
+        content = message.get("content")
+        if not isinstance(content, str):
+            continue
+        if "Using these APIs, now generate code to solve the actual task:" in content:
+            actual_task_index = index
+    if actual_task_index is None:
+        return messages
+
+    start_index = actual_task_index
+    for index in range(actual_task_index - 1, -1, -1):
+        content = messages[index].get("content")
+        if isinstance(content, str) and "**Key instructions**" in content:
+            start_index = index
+            break
+    return messages[start_index:]
 
 
 def first_choice_message(output: dict[str, Any]) -> dict[str, Any] | None:
