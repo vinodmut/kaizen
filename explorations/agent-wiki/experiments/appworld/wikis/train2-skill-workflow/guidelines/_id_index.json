@@ -1,0 +1,12 @@
+{
+  "03487fdd6432": "guidelines/retrieve-credentials-via-supervisor-api__03487fdd6432.md",
+  "04d27d43d285": "guidelines/process-all-pages-in-paginated-apis__04d27d43d285.md",
+  "0e301c1dc9a1": "guidelines/process-all-pages-in-paginated-apis__0e301c1dc9a1.md",
+  "16f6835b55ef": "guidelines/filter-entities-using-contact__16f6835b55ef.md",
+  "69dd6c0e2fbd": "guidelines/inspect-api-documentation-before-calling__69dd6c0e2fbd.md",
+  "71262af0cdc7": "guidelines/use-contacts-api-for-relationship__71262af0cdc7.md",
+  "ca7497056794": "guidelines/always-retrieve-credentials-via__ca7497056794.md",
+  "d99bba5cbfea": "guidelines/use-only-app-apis-for-app-interaction__d99bba5cbfea.md",
+  "e40f389adcaa": "guidelines/obtain-current-date-from-environment-api__e40f389adcaa.md",
+  "e56a8dc4874d": "guidelines/filter-and-act-on-api-data-using__e56a8dc4874d.md"
+}

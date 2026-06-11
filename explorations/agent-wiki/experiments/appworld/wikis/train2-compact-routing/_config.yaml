@@ -1,0 +1,97 @@
+schema_version: 1
+tags:
+  guideline:
+    ca7497056794:
+    - credentials
+    - security
+    - api-usage
+    71262af0cdc7:
+    - contacts
+    - relationships
+    - api-usage
+    0e301c1dc9a1:
+    - pagination
+    - api-usage
+    - data-completeness
+    e40f389adcaa:
+    - datetime
+    - environment
+    - api-usage
+    e56a8dc4874d:
+    - data-filtering
+    - api-usage
+    - runtime-logic
+    03487fdd6432:
+    - credentials
+    - supervisor
+    - security
+    04d27d43d285:
+    - pagination
+    - api
+    - data-integrity
+    16f6835b55ef:
+    - contacts
+    - filtering
+    - relationships
+    69dd6c0e2fbd:
+    - api
+    - documentation
+    - reliability
+    d99bba5cbfea:
+    - api
+    - app-integration
+    - compatibility
+clusters:
+  supervisor-api-credentials:
+    title: Always retrieve credentials via supervisor API
+    description: Many tasks require authentication to connected apps. Rather than
+      hardcoding, guessing, or storing credentials insecurely, these guidelines emphasize
+      always retrieving up-to-date credentials (such as passwords) using the supervisor
+      app's credential retrieval API. This ensures both security and correctness,
+      as credentials may change and must be fetched dynamically.
+    takeaway: Always obtain app credentials by calling the supervisor app's credential
+      retrieval API, never by hardcoding or guessing values. This guarantees you use
+      the correct, current credentials for authentication.
+    members:
+    - ca7497056794
+    - 03487fdd6432
+    tags:
+    - credentials
+    - supervisor-api
+    - authentication
+  iterate-all-pages-paginated-apis:
+    title: Iterate through all pages in paginated APIs
+    description: When working with APIs that paginate results, it is essential to
+      retrieve all available data by looping through every page. Stopping at the first
+      page or failing to increment the page index can result in incomplete data and
+      missed results. These guidelines stress the importance of aggregating results
+      across all pages for completeness.
+    takeaway: Always iterate through all pages of a paginated API by incrementing
+      the page index until no more results are returned. Aggregate results across
+      all pages to ensure you do not miss any relevant data.
+    members:
+    - 04d27d43d285
+    - 0e301c1dc9a1
+    tags:
+    - pagination
+    - api
+    - completeness
+  contacts-api-relationship-filtering:
+    title: Use contacts API for relationship-based filtering
+    description: Tasks often require identifying users based on relationships such
+      as friends, coworkers, or siblings. These guidelines direct agents to use the
+      contacts API and filter by the 'relationships' field, rather than making assumptions
+      or hardcoding relationships. This approach ensures that relationship-based queries
+      are accurate and up-to-date.
+    takeaway: Always use the contacts API with the appropriate relationship filter
+      to identify users for relationship-based tasks. Do not assume or hardcode relationships;
+      query the contact book for current information.
+    members:
+    - 16f6835b55ef
+    - 71262af0cdc7
+    tags:
+    - contacts
+    - relationships
+    - filtering
+tasks: {}
+session_family_overrides: {}

@@ -72,6 +72,7 @@ Read the top-level JSON keys of each input to classify it:
 | **bob session JSON** | top-level `sessionId` + `messages` | `bob-trace-converter` |
 | **claude stream-json** | JSONL lines with `{"type":"system"/"assistant"/"result"}` | `normalize_stream_json_transcripts.py` |
 | **normalized analysis JSON** | top-level `model` + `messages` + `metadata.id` | pass through (no conversion) |
+| **normalized OpenAI trajectory JSON** | top-level `session_id` + `openai_chat_completion.messages` | pass through (no conversion) |
 
 ## Step 0 — Convert
 
@@ -176,6 +177,11 @@ prompt include:
   in `messages[i].content[j]` blocks with `type: "tool_use"`;
   `transcript_path` ← `metadata.source_file`; `recalled_guidelines` is empty
   for a freshly-built wiki
+- for normalized OpenAI trajectory JSON, use top-level `session_id`, `agent`,
+  `model`, `stats`, `source`, `outcome`, and
+  `openai_chat_completion.messages` directly. Assistant messages can contain
+  reasoning, code blocks, tool calls, or all three; environment/tool outputs
+  may appear as user/tool messages. Do not require Claude-specific tool blocks.
 - **do NOT run `catalog`** — the orchestrator runs it once at the end
 
 Each subagent pipes its summary JSON to:
@@ -218,6 +224,10 @@ prompt:
 - the list of **existing skill slugs** so it doesn't re-author one
 - tell it to **decide promote-vs-skip** per that skill's "When To Use" rubric
   (trivial single-command recipes → skip and emit nothing)
+- tell it to enforce the synthesize skill's Tool/API faithfulness rule:
+  concrete tool/function/API names and arguments must be observed verbatim in
+  the trajectory or in documentation returned during the trajectory; otherwise
+  write a documentation-lookup step instead of guessing an interface.
 - when promoting, pipe with `--archive-covered` so the atomics the skill
   subsumes are soft-archived:
   ```bash

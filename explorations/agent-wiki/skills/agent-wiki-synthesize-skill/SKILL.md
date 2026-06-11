@@ -74,6 +74,13 @@ Read the file. The fields you need:
 
 - `session_id`, `agent`, `model`
 - `openai_chat_completion.messages` — the source of truth for what happened
+- `outcome.success` when present — only promote successful trajectories
+
+The normalized message format may come from any benchmark or agent. Treat
+`openai_chat_completion.messages` as a normal Chat Completions transcript:
+assistant messages can contain plans, code blocks, tool calls, or both;
+user/tool messages can contain environment outputs. Do not assume Claude Code
+tool-use blocks are present.
 
 Walk the messages and identify:
 
@@ -97,6 +104,28 @@ Pillow` needed, etc.).
 If no clearly successful workflow is in the trajectory, output zero
 skills for it and continue.
 
+#### 3d. Tool/API faithfulness
+
+For trajectories that interact with an application API, filesystem, shell, or
+other tool surface, preserve the exact observed interface:
+
+- You may mention a concrete tool/function/API name only if it appears
+  verbatim in the trajectory as an assistant action or in the tool/API
+  documentation returned during the trajectory.
+- You may describe an argument only if the trajectory shows it in an executed
+  call or in retrieved documentation. Do not infer signatures from naming
+  convention.
+- If a future run needs an API that was not observed, write the workflow step as
+  "inspect the current API documentation for the relevant app/action, then call
+  the documented function" instead of guessing a name.
+- When an observed call failed and a later call succeeded, teach the later
+  call pattern and mention the failed one only as context.
+- Prefer conceptual workflow steps over brittle code snippets when the exact
+  interface may vary between environments.
+
+This rule is part of the skill's quality bar. A skill with invented API names
+is harmful even if the high-level workflow is right.
+
 ### Step 4: Decide a skill name and trigger
 
 The skill **name** must be:
@@ -106,6 +135,9 @@ The skill **name** must be:
 - specific enough that a future agent reading just the name can guess
   what it does
 - not a duplicate of any existing skill in `<wiki>/skills/`
+- broad enough to match sibling tasks that share the same reusable recipe.
+  Do not name the skill after the exact original user request when the
+  trajectory demonstrates a more general pattern.
 
 The skill **description** (one line in frontmatter) describes the *task*,
 not the trajectory. Bad: "Solves the lens-model question from session
@@ -162,6 +194,11 @@ Notes on each field:
   `<wiki>/skills/<name>/scripts/<file>` and references it in the
   workflow body. Keep scripts minimal — strip incidental log lines or
   one-off args; replace literal file names with positional arguments.
+  Do **not** emit sibling scripts for workflows that depend on ephemeral
+  in-agent runtime objects such as `apis`, a live browser/page object, a
+  benchmark harness object, or credentials that only exist inside the future
+  agent's execution environment. In those cases, keep the exact code pattern
+  as workflow guidance for the future agent to execute in its own runtime.
 
 ### Step 6: Pipe the JSON to the helper
 

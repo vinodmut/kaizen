@@ -93,7 +93,7 @@ class AgentWikiReActCodeAgent(SimplifiedReActCodeAgent):  # type: ignore[misc]
                     "print((wiki_root / 'AGENTS.md').read_text()[:4000])",
                     "```",
                     "",
-                    "Then read `_index.jsonl`, choose relevant entries per AGENTS.md, and read only the pages you need.",
+                    "Then follow `AGENTS.md`. Read only the files it says are needed for this exact task.",
                 ]
             )
             return "\n".join(header)
