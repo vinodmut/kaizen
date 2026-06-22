@@ -42,6 +42,14 @@ always runs (it's cheap and self-idempotent). To force a redo of an already-
 ingested trace, keep it in the list and pass `--rewrite` to its `render-*`
 calls.
 
+**Non-leakage contract.** Every pass that creates reusable wiki content must
+filter out benchmark-specific knowledge. Summaries and experiment notes may
+record what happened for auditability, but guidelines, clusters, and synthesized
+skills must not encode task names, dataset names, domain labels from a held-out
+corpus, expected values, exact output filenames, hidden schemas, reference
+files, evaluator behavior, scores, or answer-derived facts. Store only
+dataset-agnostic process rules that would still be valid on unrelated inputs.
+
 **Why this order.** `synthesize-skill` runs *before* `consolidate-guidelines`
 so skills claim recipe-level territory first (and archive the atomics they
 cover via `--archive-covered`); consolidation then clusters only the
@@ -194,6 +202,8 @@ prompt:
 - the analysis-JSON path, `--wiki-root`, `agent`, and bob adapter notes
 - the list of **existing guideline slugs** (from prior traces this run) so it
   suppresses near-duplicates
+- instruct it to apply `agent-wiki-extract-guidelines`' leakage and generality
+  gate before rendering any entity
 - instruct it to attach a `tags:` array to every entity (these now propagate
   to both the `.md` frontmatter and `_config.yaml` — see commit that fixed
   `render-guidelines`)
@@ -218,7 +228,8 @@ prompt:
 - the analysis-JSON path, `--wiki-root`, `agent`, bob adapter notes
 - the list of **existing skill slugs** so it doesn't re-author one
 - tell it to **decide promote-vs-skip** per that skill's "When To Use" rubric
-  (trivial single-command recipes → skip and emit nothing)
+  and leakage gate (trivial single-command recipes, benchmark-specific recipes,
+  and workflows that encode expected answers → skip and emit nothing)
 - when promoting, pipe with `--archive-covered` so the atomics the skill
   subsumes are soft-archived:
   ```bash
@@ -262,10 +273,11 @@ failure from the normalized transcript. In its prompt:
   Prefer `--judge-outcomes always` when stored labels come from a benchmark
   evaluator or other dataset-specific schema; use `--judge-outcomes missing`
   only for trusted, dataset-neutral labels.
-- instruct it to promote **only** strong candidates (one failed + one
-  successful run in the same group, a task-action tool/API or workflow
-  difference, source trajectory IDs for both sides) per that skill's "Inspect"
-  and "Promote Carefully" rules — keep weak ones as hypotheses, not rules.
+- instruct it to promote **only** strong, non-leaking candidates (one failed +
+  one successful run in the same group, a task-action tool/API or workflow
+  difference visible in trajectories, source trajectory IDs for both sides) per
+  that skill's "Inspect" and "Promote Carefully" rules. Keep weak or
+  dataset-specific candidates as hypotheses, not rules.
 - pipe promoted entities through the helper (avoid `echo`; use a temp file):
   ```bash
   cat /tmp/contrastive-guidelines.json | uv run python explorations/agent-wiki/skills/scripts/build_agent_wiki.py --wiki-root <wiki-root> render-guidelines
@@ -295,7 +307,8 @@ whole surviving-atomic corpus. In its prompt:
 - instruct it to run `dump-guidelines` first, then propose clusters
 - remind it: a cluster needs ≥2 atomic members sharing a real **rule** (not
   just a topic); don't propose clusters overlapping a skill's territory (the
-  skill is already the canonical aggregator)
+  skill is already the canonical aggregator); don't let clusters convert
+  audit-only benchmark observations into reusable wiki instructions
 - **do NOT run `catalog`** — the orchestrator runs it next
 
 Each cluster is piped via:
@@ -335,7 +348,11 @@ were considered and rejected.
    summarize and extract subagents must stamp the right source.
 6. **Tags on every guideline.** They drive the "By tag" index and future
    cluster formation; an untagged atomic is invisible to tag-based recall.
-7. **Idempotent by default.** Step 1.5 skips any trace that already has a
+7. **No benchmark leakage in reusable content.** Scores, evaluator behavior,
+   references, task ids, dataset names, expected outputs, and hidden schemas
+   can appear in audit summaries only. They must not become guidelines,
+   clusters, skills, slugs, triggers, tags, or scripts.
+8. **Idempotent by default.** Step 1.5 skips any trace that already has a
    `summaries/<sid>.md`, so re-running on the same source dir reprocesses
    nothing. Use `--rewrite` on the `render-*` calls to force a redo of a
    specific trace.

@@ -43,6 +43,10 @@ guideline alone — when:
 
 - The workflow is a single trivial command (`grep -c TODO ...`).
 - The path embeds secrets, tokens, or one-off user inputs.
+- The workflow depends on benchmark task names, dataset-specific labels, exact
+  expected outputs, reference files, evaluator behavior, or private schemas.
+- The only reason the workflow works is that it encodes answer knowledge or
+  domain facts from the source dataset rather than a reusable procedure.
 - A skill with the same trigger already exists in `<wiki>/skills/`.
 - The session ended without reaching a clear successful answer.
 
@@ -77,19 +81,29 @@ Read the file. The fields you need:
 
 Walk the messages and identify:
 
-#### 3a. The successful workflow
+#### 3a. Leakage and portability check
+
+A synthesized skill must be reusable on unrelated inputs. Before promoting a
+workflow, verify that the skill can be described without task ids, dataset
+names, benchmark domains, exact file names from the task, expected values,
+gold labels, evaluator output, or reference-derived facts. Generalize command
+arguments, file paths, schema fields, and scripts into parameters. If removing
+those specifics makes the workflow empty or unreliable, do not synthesize a
+skill.
+
+#### 3b. The successful workflow
 
 The **final, working** tool sequence — the one that produced the answer.
 Distinguish it from the trial-and-error leading up to it. Capture the
 exact tool calls, scripts, or command sequences verbatim.
 
-#### 3b. The trial-and-error context
+#### 3c. The trial-and-error context
 
 What didn't work — the dead ends. You'll use this to author a *trigger
 description* so a future agent knows when to reach for this skill **instead
 of** the failing approaches.
 
-#### 3c. Environment assumptions
+#### 3d. Environment assumptions
 
 What was missing or had to be installed (no `exiftool`, `pip install
 Pillow` needed, etc.).
@@ -265,3 +279,7 @@ invokes any sibling scripts via Bash.
    will not match a lens-model query. If the trajectory only exercised
    one EXIF field, name the skill broadly (`extract-jpeg-exif-camera-optics`)
    so future agents recognize its applicability to siblings.
+7. **No benchmark leakage.** Do not preserve task names, dataset entities,
+   hidden-reference behavior, exact expected outputs, one-off schema keys,
+   or evaluator-derived facts in the skill name, description, trigger, steps,
+   scripts, tags, or examples.

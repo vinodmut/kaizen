@@ -18,7 +18,8 @@ and optionally an LLM success/failure judgment.
 
 This pass exists to avoid hand-authored domain knowledge. Do not write a rule
 just because you know the benchmark or application. Write a rule only when the
-input trajectories contain the evidence.
+input trajectories contain the evidence, and only if the resulting behavior can
+be stated without benchmark-specific facts or expected answers.
 
 ## Workflow
 
@@ -69,7 +70,22 @@ but it may not detect silent semantic mismatches.
 
 ### Step 2: Inspect Candidate Rules
 
-Read the generated Markdown. A candidate is promotable only if it has:
+Read the generated Markdown. First apply this non-leakage filter:
+
+- Outcome labels, scores, evaluator snippets, and reference outputs may help
+  decide which trajectories to inspect, but they must not be the source of the
+  future rule.
+- Reject candidates whose content requires task ids, dataset names, domain
+  labels from the benchmark, expected values, exact output filenames, hidden
+  schemas, reference-derived facts, or evaluator behavior.
+- Reject candidates that amount to memorizing which answer, label, tool result,
+  or artifact shape was correct for this corpus.
+- Prefer process-level contrasts visible in the transcript: an early artifact
+  was written vs no artifact, validation was run vs skipped, a required public
+  tool contract was followed vs ignored, or reusable setup was parameterized
+  vs hardcoded.
+
+A candidate is promotable only if it has:
 
 - at least one failed trajectory and one successful trajectory in the same
   group;
@@ -125,9 +141,10 @@ uv run python explorations/agent-wiki/skills/scripts/build_agent_wiki.py --wiki-
   retrieved documentation.
 - Prefer generic rule wording first, with tool-specific examples under
   evidence. The wiki can specialize only where the evidence supports it.
-- Keep triggers narrow. Name the observed successful and failed API pair, add
-  the successful-side positive terms, and add explicit counter-scope for
-  failed-side terms and unrelated record families.
+- Keep triggers narrow, but not dataset-specific. Name concrete tools or APIs
+  only when they are reusable public/workspace interfaces visible in the
+  trajectory. Do not name benchmark task ids, dataset entities, hidden labels,
+  expected artifacts, or reference-only concepts.
 - Record counterexamples: if a failed and successful run used the same tool,
   this pass did not identify a source-selection rule.
 - Keep confidence explicit. High confidence requires at least one success, one

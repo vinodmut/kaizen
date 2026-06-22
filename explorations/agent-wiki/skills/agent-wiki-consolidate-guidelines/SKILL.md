@@ -55,6 +55,11 @@ For each candidate cluster:
 
 Rules:
 
+0. **Apply the leakage gate again.** Do not let consolidation launder
+   benchmark-specific details into a broader-looking rule. If a candidate
+   cluster depends on task ids, dataset names, exact answer values, hidden
+   references, evaluator behavior, or benchmark-specific artifact names, skip
+   it or rewrite the takeaway as a genuinely dataset-agnostic process rule.
 1. **Don't cluster unrelated guidelines just to clean up the listing.** A cluster needs a real shared rule, not a shared topic.
 2. **Don't merge content across atomic pages.** Each atomic page stays whole. The cluster's body summarizes the *theme* and links to members.
 3. **Don't propose a cluster for a single guideline.** Wait for ≥2 members.
@@ -103,4 +108,8 @@ re-rendered against current member content.
 2. **Be conservative.** Two false-positive clusters cost more than two un-clustered duplicates.
 3. **Preserve atomic provenance.** A reader should be able to navigate cluster → member → source trajectory in two clicks.
 4. **Don't re-cluster within an existing cluster.** Sub-themes don't justify nesting.
-5. Always tail-call `catalog` after the cluster loop.
+5. Keep cluster titles, descriptions, takeaways, tags, and slugs free of
+   benchmark task names, dataset domains, expected outputs, and evaluator
+   terms unless the wiki is explicitly a private audit log rather than a
+   reusable agent-wiki.
+6. Always tail-call `catalog` after the cluster loop.

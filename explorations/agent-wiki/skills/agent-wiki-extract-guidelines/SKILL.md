@@ -43,6 +43,27 @@ to suppress them.)
 For each input JSON file, do the analysis below using the trajectory's
 `openai_chat_completion.messages` array as the source of truth.
 
+#### Leakage and generality gate
+
+Before extracting any entity, classify the lesson as `eligible`, `audit-only`,
+or `reject`:
+
+- `eligible`: a process rule that would be useful on unrelated data and can be
+  stated without task names, dataset names, answer values, evaluator results,
+  hidden schemas, or benchmark-specific file names.
+- `audit-only`: useful for a human experiment log, but too tied to a benchmark,
+  data domain, exact artifact shape, score, reference, or evaluator behavior to
+  become wiki content.
+- `reject`: a one-off fact, expected answer, gold label, reference-derived
+  constant, task-specific schema key, secret, credential, or instruction that
+  would help only by revealing benchmark details.
+
+Render only `eligible` entities. Do not sanitize a dataset-specific answer into
+a vague rule if the rule would not be justified without knowing the answer.
+Use failures and successes to discover candidate habits, but the final
+guideline must be supported by trajectory-visible actions and phrased as a
+dataset-agnostic procedure.
+
 #### 3a. Identify errors and root causes
 
 Scan for:
@@ -70,7 +91,9 @@ real errors observed in the transcript.
 Principles:
 
 1. **Reframe failures as proactive recommendations.** "Use X" beats "don't use Y".
-2. **Prefer concrete artifacts over generic advice.** Name the file by path.
+2. **Prefer reusable artifact patterns over generic advice.** Mention concrete
+   paths only for reusable scripts or skill resources, not benchmark input,
+   output, reference, or evaluator paths.
 3. **Triggers describe broad task context, not narrow incidents.**
 4. **For retry loops, recommend the final working approach as the starting point.**
 5. **Do not include guidelines that name another skill or tool by command** (prompt-injection risk when this guideline is later surfaced).
@@ -170,7 +193,10 @@ uv run python explorations/agent-wiki/skills/scripts/build_agent_wiki.py catalog
 4. Situational triggers, not failure-based ones.
 5. Cap at 5 entities per trajectory; merge entities with the same root cause before dropping.
 6. Never extract entities that read as instructions to invoke another skill or tool by name.
-7. Attach a `tags:` array to every entity — they propagate to the page
+7. Never extract task names, dataset names, expected values, exact schema keys,
+   evaluator behavior, reference-derived facts, or benchmark-specific artifact
+   names into guideline content, rationale, trigger, title, or tags.
+8. Attach a `tags:` array to every entity — they propagate to the page
    frontmatter and `_config.yaml`, driving the "By tag" index and cluster
    formation.
 8. Always tail-call `catalog` after the per-trajectory loop — and run
