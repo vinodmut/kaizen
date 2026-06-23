@@ -94,8 +94,9 @@ skill.
 #### 3b. The successful workflow
 
 The **final, working** tool sequence — the one that produced the answer.
-Distinguish it from the trial-and-error leading up to it. Capture the
-exact tool calls, scripts, or command sequences verbatim.
+Distinguish it from the trial-and-error leading up to it. Use exact tool calls,
+scripts, or command sequences only as source material, then generalize paths,
+arguments, schemas, constants, and examples before rendering the skill.
 
 #### 3c. The trial-and-error context
 

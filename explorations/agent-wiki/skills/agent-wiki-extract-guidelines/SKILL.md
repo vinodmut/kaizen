@@ -199,6 +199,6 @@ uv run python explorations/agent-wiki/skills/scripts/build_agent_wiki.py catalog
 8. Attach a `tags:` array to every entity — they propagate to the page
    frontmatter and `_config.yaml`, driving the "By tag" index and cluster
    formation.
-8. Always tail-call `catalog` after the per-trajectory loop — and run
+9. Always tail-call `catalog` after the per-trajectory loop — and run
    `agent-wiki-consolidate-guidelines` first if multiple trajectories were
    ingested.
