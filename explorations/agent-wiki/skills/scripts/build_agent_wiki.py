@@ -5,10 +5,12 @@
 
 Subcommands:
   render-summary       stdin JSON -> summaries/<sid>.md
+  render-evidence      stdin JSON -> evidence/<slug>__<eid>.md
   render-guidelines    stdin JSON -> guidelines/<slug>__<gid>.md (one per entity)
   render-cluster       stdin JSON -> guidelines/<slug>__cluster.md
   render-task          stdin JSON -> tasks/<slug>.md
   update-config        stdin JSON patch -> wiki-twobatch/_config.yaml
+  dump-evidence        stdout: corpus of extracted evidence notes as JSON
   dump-guidelines      stdout: corpus of atomic guidelines as JSON
   dump-summaries       stdout: corpus of summaries as JSON
   catalog              no input; refresh indexes, _index.jsonl, summary metric frontmatter
@@ -50,6 +52,7 @@ except ImportError:
 WIKI_DIRNAME = "wiki-twobatch"
 SUMMARIES_DIR = "summaries"
 GUIDELINES_DIR = "guidelines"
+EVIDENCE_DIR = "evidence"
 TASKS_DIR = "tasks"
 SKILLS_DIR = "skills"
 ID_INDEX_FILENAME = "_id_index.json"
@@ -99,6 +102,7 @@ def load_config(wiki_root: Path) -> dict:
             return {"schema_version": 1, "tags": {"guideline": {}}, "clusters": {}, "tasks": {}, "session_family_overrides": {}}
     data = yaml.safe_load(p.read_text(encoding="utf-8")) or {}
     data.setdefault("tags", {}).setdefault("guideline", {})
+    data.setdefault("tags", {}).setdefault("evidence", {})
     data.setdefault("clusters", {})
     data.setdefault("tasks", {})
     data.setdefault("session_family_overrides", {})
@@ -248,6 +252,13 @@ def upsert_fields(text: str, additions: dict, *, force_replace: tuple[str, ...] 
 
 
 def _emit_yaml_field(key: str, value: Any) -> list[str]:
+    if isinstance(value, dict):
+        if not value:
+            return [f"{key}: {{}}"]
+        out = [f"{key}:"]
+        for kk, vv in value.items():
+            out.append(f"  {kk}: {yaml_scalar(vv)}")
+        return out
     if isinstance(value, list):
         if not value:
             return [f"{key}: []"]
@@ -768,8 +779,159 @@ def _render_guideline_md(entity: dict, normalized_path: str | None, session_id: 
     if summary_basename:
         body.append(f"- [trajectory summary](../{SUMMARIES_DIR}/{summary_basename})")
     if normalized_path:
-        body.append(f"- [normalized JSON]({normalized_path})")
+        body.append(f"- [normalized JSON](../{normalized_path})")
     body.append("")
+    return "\n".join(fm + body)
+
+
+# ---------------------------------------------------------------------------
+# Subcommand: render-evidence
+# ---------------------------------------------------------------------------
+
+
+def cmd_render_evidence(args) -> int:
+    try:
+        data = json.load(sys.stdin)
+    except json.JSONDecodeError as exc:
+        print(f"error: invalid JSON on stdin: {exc}", file=sys.stderr)
+        return 2
+    if not isinstance(data, dict):
+        print("error: top-level JSON must be an object with `items`", file=sys.stderr)
+        return 2
+    items = data.get("items") or []
+    if not isinstance(items, list) or not items:
+        print("no evidence items provided; nothing to write", file=sys.stderr)
+        return 0
+
+    wiki_root = find_wiki_root(override=args.wiki_root)
+    out_dir = wiki_root / EVIDENCE_DIR
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    written = skipped = 0
+    today = datetime.date.today().isoformat()
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        summary = (item.get("summary") or item.get("pattern") or item.get("statement") or "").strip()
+        statement = (item.get("statement") or item.get("pattern") or summary).strip()
+        if not summary and not statement:
+            continue
+        sid = item.get("session_id") or args.session_id
+        norm = item.get("normalized_path") or args.normalized_path
+        item = {**item}
+        if sid and not item.get("session_id"):
+            item["session_id"] = sid
+        if norm and not item.get("normalized_path"):
+            item["normalized_path"] = norm
+        if sid and not item.get("related_summary"):
+            item["related_summary"] = f"{SUMMARIES_DIR}/{sid}.md"
+        eid = (str(item.get("id") or "").strip() or compute_entity_id(json.dumps(item, sort_keys=True, ensure_ascii=False)))
+        if eid.startswith("ev:"):
+            eid = eid[3:]
+        eid = eid[:12]
+        slug_source = item.get("slug") or item.get("title") or summary or statement
+        slug = slugify(str(slug_source), max_len=50)
+        safe_sid = ""
+        if sid:
+            safe_sid = re.sub(r"[^A-Za-z0-9._-]+", "-", str(sid)).strip("-")
+        if safe_sid:
+            out_path = out_dir / f"{safe_sid}__{slug}__{eid}.md"
+        else:
+            out_path = out_dir / f"{slug}__{eid}.md"
+        if out_path.exists() and not args.rewrite:
+            print(f"skip (exists): {out_path}")
+            skipped += 1
+            continue
+        out_path.write_text(_render_evidence_md(item, eid, today), encoding="utf-8")
+        print(f"wrote: {out_path}")
+        written += 1
+    print(f"\nwrote {written}, skipped {skipped}")
+    return 0
+
+
+def _render_evidence_md(item: dict, eid: str, today: str) -> str:
+    title = (item.get("title") or item.get("summary") or item.get("pattern") or "Evidence").strip()
+    summary = (item.get("summary") or item.get("pattern") or "").strip()
+    statement = (item.get("statement") or item.get("pattern") or summary).strip()
+    session_id = (item.get("session_id") or "").strip()
+    related_summary = (item.get("related_summary") or "").strip()
+    normalized_path = (item.get("normalized_path") or "").strip()
+    kind = (item.get("kind") or "").strip()
+    agent = (item.get("agent") or "").strip()
+    span = item.get("span") or {}
+    tags = item.get("tags") or []
+    sources = item.get("sources") or []
+    supports = item.get("supports") or []
+
+    fm = ["---", f"id: ev:{eid}", "type: evidence", f"title: {yaml_scalar(title)}"]
+    if kind:
+        fm.append(f"kind: {yaml_scalar(kind)}")
+    if summary:
+        fm.append(f"summary: {yaml_scalar(summary)}")
+    if session_id:
+        fm.append(f"session_id: {session_id}")
+    if agent:
+        fm.append(f"agent: {yaml_scalar(agent)}")
+    if related_summary:
+        fm.append(f"related_summary: {related_summary}")
+    if isinstance(span, dict) and span:
+        fm.extend(_emit_yaml_field("span", span))
+    if tags:
+        fm.append("tags: " + yaml_scalar(tags))
+    if sources:
+        fm.extend(_emit_yaml_field("sources", sources))
+    elif normalized_path:
+        fm.append("sources:")
+        fm.append(f"  - path: {normalized_path}")
+        fm.append("    kind: normalized-json")
+    if supports:
+        fm.extend(_emit_yaml_field("supports", supports))
+    fm.append(f"verified_at: {today}")
+    fm.append("recall_preferred: false")
+    fm.append("---")
+    fm.append("")
+
+    body = [f"# {title}", ""]
+    if summary:
+        body.extend([summary, ""])
+    if statement:
+        body.extend(["## Observation", "", statement, ""])
+    for label, key in (
+        ("Precondition", "precondition"),
+        ("Action", "action"),
+        ("Outcome", "outcome"),
+        ("Evidence", "evidence"),
+        ("Leakage Notes", "leakage_notes"),
+    ):
+        value = (item.get(key) or "").strip()
+        if value:
+            body.extend([f"## {label}", "", value, ""])
+    sequence = item.get("sequence") or []
+    if isinstance(sequence, list) and sequence:
+        body.extend(["## Sequence", ""])
+        for step in sequence:
+            body.append(f"- {step}")
+        body.append("")
+    if supports:
+        body.extend(["## Supports", ""])
+        for support in supports:
+            if not isinstance(support, dict):
+                continue
+            kind = support.get("kind") or "item"
+            ident = support.get("id") or ""
+            link = support.get("link")
+            if link:
+                body.append(f"- `{kind}` [{ident}](../{link})")
+            else:
+                body.append(f"- `{kind}` `{ident}`")
+        body.append("")
+    if related_summary or normalized_path:
+        body.extend(["## Sources", ""])
+        if related_summary:
+            body.append(f"- [trajectory summary](../{related_summary})")
+        if normalized_path:
+            body.append(f"- [normalized JSON](../{normalized_path})")
+        body.append("")
     return "\n".join(fm + body)
 
 
@@ -830,9 +992,11 @@ def _refresh_agent_retrieval_indexes(wiki_root: Path) -> None:
     cfg = load_config(wiki_root)
     today = datetime.date.today().isoformat()
     g_meta = _scan_atomic_guidelines(wiki_root)
+    e_meta = _scan_evidence(wiki_root)
+    _write_evidence_index(wiki_root, e_meta, today)
     _write_guidelines_index(wiki_root, g_meta, cfg, today)
     _write_skills_index(wiki_root, _scan_skills(wiki_root), today)
-    _write_jsonl_index(wiki_root, cfg, g_meta)
+    _write_jsonl_index(wiki_root, cfg, g_meta, e_meta)
     _assert_jsonl_index_integrity(wiki_root)
 
 
@@ -943,7 +1107,7 @@ def _render_cluster_md(slug: str, info: dict, wiki_root: Path) -> str:
     body.append("")
     body.append(
         "These guidelines are kept as separate pages for full provenance back to "
-        "their source trajectories. The cluster references them; nothing is moved "
+        "their source trajectories. The cluster links to them; nothing is moved "
         "or merged."
     )
     body.append("")
@@ -1129,7 +1293,7 @@ def cmd_render_skill(args) -> int:
     if related:
         body.append(f"- [trajectory summary](../../{related})")
     if norm_path:
-        body.append(f"- [normalized JSON]({norm_path})")
+        body.append(f"- [normalized JSON](../../{norm_path})")
     body.append("")
 
     skill_md.write_text("\n".join(fm + body), encoding="utf-8")
@@ -1514,6 +1678,36 @@ def cmd_dump_guidelines(args) -> int:
 
 
 # ---------------------------------------------------------------------------
+# Subcommand: dump-evidence
+# ---------------------------------------------------------------------------
+
+
+def cmd_dump_evidence(args) -> int:
+    wiki_root = find_wiki_root(override=args.wiki_root)
+    out = []
+    for eid, info in _scan_evidence(wiki_root).items():
+        out.append(
+            {
+                "id": f"ev:{eid}",
+                "filename": Path(info["relpath"]).name,
+                "title": info.get("title") or "",
+                "kind": info.get("kind") or "",
+                "summary": info.get("summary") or "",
+                "agent": info.get("agent") or "",
+                "tags": info.get("tags") or [],
+                "related_summary": info.get("related_summary") or "",
+                "span": info.get("span") or {},
+                "sources": info.get("sources") or [],
+                "supports": info.get("supports") or [],
+                "content": info.get("first_para") or "",
+            }
+        )
+    json.dump(out, sys.stdout, ensure_ascii=False, indent=2)
+    sys.stdout.write("\n")
+    return 0
+
+
+# ---------------------------------------------------------------------------
 # Subcommand: dump-summaries
 # ---------------------------------------------------------------------------
 
@@ -1552,7 +1746,7 @@ def cmd_catalog(args) -> int:
     wiki_root.mkdir(parents=True, exist_ok=True)
     # Ensure every section dir exists before any index writer runs — a fresh
     # `catalog` on a bare wiki_root otherwise crashes writing summaries/index.md.
-    for _section in (SUMMARIES_DIR, GUIDELINES_DIR, TASKS_DIR, SKILLS_DIR):
+    for _section in (SUMMARIES_DIR, EVIDENCE_DIR, GUIDELINES_DIR, TASKS_DIR, SKILLS_DIR):
         (wiki_root / _section).mkdir(parents=True, exist_ok=True)
     cfg = load_config(wiki_root)
     today = datetime.date.today().isoformat()
@@ -1569,6 +1763,7 @@ def cmd_catalog(args) -> int:
 
     # Phase 1: enrich atomic guideline frontmatter from config
     g_meta = _scan_atomic_guidelines(wiki_root)
+    e_meta = _scan_evidence(wiki_root)
     tag_map = (cfg.get("tags") or {}).get("guideline") or {}
     cluster_map = {}
     for slug, info in (cfg.get("clusters") or {}).items():
@@ -1655,14 +1850,15 @@ def cmd_catalog(args) -> int:
     # reflects the just-written tool_calls / wiki_consulted /
     # contributed_guidelines frontmatter rather than pre-enrichment zeros.
     sessions = _classify_sessions(wiki_root, cfg)
-    _write_root_index(wiki_root, cfg, g_meta, sessions, today)
+    _write_root_index(wiki_root, cfg, g_meta, e_meta, sessions, today)
     _write_summaries_index(wiki_root, sessions, today)
+    _write_evidence_index(wiki_root, e_meta, today)
     _write_guidelines_index(wiki_root, g_meta, cfg, today)
     _write_tasks_index(wiki_root, cfg, today)
     _write_skills_index(wiki_root, _scan_skills(wiki_root), today)
 
     # Phase 6: regenerate _index.jsonl
-    _write_jsonl_index(wiki_root, cfg, g_meta)
+    _write_jsonl_index(wiki_root, cfg, g_meta, e_meta)
     _assert_jsonl_index_integrity(wiki_root)
 
     print(
@@ -1717,6 +1913,56 @@ def _scan_atomic_guidelines(wiki_root: Path) -> dict[str, dict]:
     id_index = {gid: info["relpath"] for gid, info in out.items()}
     if id_index:
         _update_id_index(g_dir, id_index)
+    return out
+
+
+def _scan_evidence(wiki_root: Path) -> dict[str, dict]:
+    """Return {id_without_ev_prefix: evidence metadata}.
+
+    Evidence pages are audit/provenance records. They can be indexed for
+    inspection, but are not recall-preferred guidance.
+    """
+    out: dict[str, dict] = {}
+    e_dir = wiki_root / EVIDENCE_DIR
+    if not e_dir.is_dir():
+        return out
+    for p in sorted(e_dir.glob("*.md")):
+        if p.name == "index.md":
+            continue
+        text = p.read_text(encoding="utf-8")
+        fm, body = split_frontmatter(text)
+        if fm is None:
+            continue
+        try:
+            data = yaml.safe_load(fm) or {}
+        except yaml.YAMLError:
+            data = {}
+        raw_id = str(data.get("id") or "").strip()
+        eid = raw_id[3:] if raw_id.startswith("ev:") else raw_id
+        if not eid:
+            eid = compute_entity_id(body or p.name)
+        title_m = re.search(r"^# (.+)$", body or "", re.MULTILINE)
+        cm = re.search(r"^# .+?\n\n(.+?)(?=\n\n|\n## |\Z)", body or "", re.S | re.M)
+        out[eid] = {
+            "path": p,
+            "relpath": f"{EVIDENCE_DIR}/{p.name}",
+            "title": str(data.get("title") or (title_m.group(1).strip() if title_m else p.name)),
+            "kind": str(data.get("kind") or ""),
+            "summary": str(data.get("summary") or ""),
+            "first_para": (cm.group(1).replace("\n", " ").strip() if cm else "")[:240],
+            "session_id": str(data.get("session_id") or ""),
+            "agent": str(data.get("agent") or ""),
+            "related_summary": str(data.get("related_summary") or ""),
+            "span": data.get("span") or {},
+            "sources": data.get("sources") or [],
+            "supports": data.get("supports") or [],
+            "tags": data.get("tags") or [],
+            "verified_at": str(data.get("verified_at") or ""),
+            "recall_preferred": bool(data.get("recall_preferred") is True),
+        }
+    id_index = {eid: info["relpath"] for eid, info in out.items()}
+    if id_index:
+        _update_id_index(e_dir, id_index)
     return out
 
 
@@ -2066,7 +2312,7 @@ def _summary_tags(goal: str, np_rel: str, family: str | None, wiki_consulted: bo
 # ---------------------------------------------------------------------------
 
 
-def _write_root_index(wiki_root: Path, cfg: dict, g_meta: dict, sessions: list[dict], today: str) -> None:
+def _write_root_index(wiki_root: Path, cfg: dict, g_meta: dict, e_meta: dict, sessions: list[dict], today: str) -> None:
     n_clusters = len(cfg.get("clusters") or {})
     n_tasks = len(cfg.get("tasks") or {})
     n_subtasks = len(_scan_subtasks(wiki_root / TASKS_DIR))
@@ -2093,6 +2339,8 @@ def _write_root_index(wiki_root: Path, cfg: dict, g_meta: dict, sessions: list[d
         f"+ `__subtask.md` per-session workstreams ({n_subtasks})",
         f"- [Guidelines](guidelines/index.md) — atomic lessons + cluster aggregator pages "
         f"(suffix `__cluster.md`); cluster pages are recall-preferred ({n_atomic} atomic + {n_clusters} clusters)",
+        f"- [Evidence](evidence/index.md) — audit-only event and sequence observations used as "
+        f"source material for guideline and skill synthesis ({len(e_meta)} items)",
         f"- [Summaries](summaries/index.md) — episodic summaries ({summary_blurb}). "
         f"Long sessions may be split into multiple arc-summaries that share a `session_id`.",
         "",
@@ -2100,7 +2348,8 @@ def _write_root_index(wiki_root: Path, cfg: dict, g_meta: dict, sessions: list[d
         "",
         "```",
         "raw .jsonl  ──normalize──▶  normalized JSON  ──summarize──▶  summary",
-        "                                                                │",
+        "                                      │                         │",
+        "                                      └──extract evidence───────┤",
         "                                                                └──▶  guideline (one or more)  ──cluster──▶  guideline (cluster) page",
         "                                                                                                              │",
         "                            task comparison page  ◀───────────────────────────────────────────────────────────┘",
@@ -2109,6 +2358,7 @@ def _write_root_index(wiki_root: Path, cfg: dict, g_meta: dict, sessions: list[d
         "Provenance closes via:",
         "",
         "- `summary.contributed_guidelines: [id, …]` (outbound)",
+        "- `evidence.related_summary: summaries/<sid>.md` (audit provenance)",
         "- `guideline.related_summary: summaries/<sid>.md` (inbound)",
         "- `guideline.cluster: <slug>__cluster.md` (themed group)",
         "- `cluster.members[].link: <member>.md` (preserves originals)",
@@ -2118,7 +2368,8 @@ def _write_root_index(wiki_root: Path, cfg: dict, g_meta: dict, sessions: list[d
         "",
         "Read [_index.jsonl](_index.jsonl) — one row per guideline + cluster page with "
         "`{id, kind, title, tags, trigger, summary, link}`. Filter by tag, score on "
-        "trigger overlap, then follow `link` for the full content.",
+        "trigger overlap, then follow `link` for the full content. Evidence rows are "
+        "marked `recall_preferred: false` and are for audit, not direct advice.",
         "",
         "## Cluster pages",
         "",
@@ -2311,6 +2562,60 @@ def _render_priority_table(*, g_meta: dict, clusters: dict, tag_map: dict, clust
         )
     out.append("")
     return out
+
+
+def _write_evidence_index(wiki_root: Path, e_meta: dict, today: str) -> None:
+    e_dir = wiki_root / EVIDENCE_DIR
+    e_dir.mkdir(parents=True, exist_ok=True)
+    lines = [
+        "---",
+        "type: section-index",
+        "section: evidence",
+        f"verified_at: {today}",
+        f"count: {len(e_meta)}",
+        "---",
+        "",
+        "# Evidence",
+        "",
+        "Audit-only event and sequence observations extracted from normalized "
+        "trajectories. Evidence records are source material for guideline and "
+        "skill synthesis. They are not direct advice and are not recall-preferred.",
+        "",
+    ]
+    if not e_meta:
+        lines.append("_(none yet)_")
+        lines.append("")
+    else:
+        lines.append("| Evidence | Summary | Tags | Related summary | Supports | Verified at |")
+        lines.append("|---|---|---|---|---|---|")
+        for eid, info in sorted(e_meta.items(), key=lambda x: x[1].get("title") or ""):
+            title = (info.get("title") or eid).replace("|", "\\|")
+            summary = (info.get("summary") or info.get("first_para") or "—").replace("|", "\\|").replace("\n", " ")
+            if len(summary) > 120:
+                summary = summary[:117] + "…"
+            tags = ", ".join(info.get("tags") or []) or "—"
+            related = info.get("related_summary") or ""
+            related_cell = f"[{Path(related).name}](../{related})" if related else "—"
+            supports = info.get("supports") or []
+            support_cell = "—"
+            if supports:
+                parts = []
+                for support in supports:
+                    if not isinstance(support, dict):
+                        continue
+                    ident = support.get("id") or support.get("kind") or "item"
+                    link = support.get("link")
+                    if link:
+                        parts.append(f"[{ident}](../{link})")
+                    else:
+                        parts.append(f"`{ident}`")
+                support_cell = ", ".join(parts) or "—"
+            lines.append(
+                f"| [{title}]({Path(info['relpath']).name}) | {summary} | {tags} | "
+                f"{related_cell} | {support_cell} | {info.get('verified_at') or today} |"
+            )
+        lines.append("")
+    (e_dir / "index.md").write_text("\n".join(lines), encoding="utf-8")
 
 
 def _write_guidelines_index(wiki_root: Path, g_meta: dict, cfg: dict, today: str) -> None:
@@ -2580,7 +2885,7 @@ def _write_skills_index(wiki_root: Path, skills: dict[str, dict], today: str) ->
     (sk_dir / "index.md").write_text("\n".join(lines), encoding="utf-8")
 
 
-def _write_jsonl_index(wiki_root: Path, cfg: dict, g_meta: dict) -> None:
+def _write_jsonl_index(wiki_root: Path, cfg: dict, g_meta: dict, e_meta: dict | None = None) -> None:
     rows = []
     clusters = cfg.get("clusters") or {}
     tag_map = (cfg.get("tags") or {}).get("guideline") or {}
@@ -2671,6 +2976,25 @@ def _write_jsonl_index(wiki_root: Path, cfg: dict, g_meta: dict) -> None:
             }
         )
 
+    # evidence rows are audit material, not advice. Keep them discoverable for
+    # inspection while making recall filters able to exclude them cheaply.
+    for eid, info in sorted((e_meta or {}).items(), key=lambda x: x[1].get("title") or ""):
+        rows.append(
+            {
+                "kind": "evidence",
+                "id": f"ev:{eid}",
+                "title": info.get("title") or eid,
+                "tags": info.get("tags") or [],
+                "trigger": "",
+                "summary": (info.get("summary") or info.get("first_para") or "")[:240],
+                "link": info["relpath"],
+                "priority": "audit",
+                "recall_preferred": False,
+                "related_summary": info.get("related_summary") or "",
+                "supports": info.get("supports") or [],
+            }
+        )
+
     p = wiki_root / JSONL_INDEX_FILENAME
     with p.open("w", encoding="utf-8") as f:
         for r in rows:
@@ -2689,6 +3013,11 @@ def main(argv: list[str] | None = None) -> int:
 
     p_sum = sub.add_parser("render-summary", help="stdin JSON -> summaries/<sid>.md")
     p_sum.add_argument("--rewrite", action="store_true")
+
+    p_ev = sub.add_parser("render-evidence", help="stdin {items: [...]} -> evidence pages")
+    p_ev.add_argument("--rewrite", action="store_true")
+    p_ev.add_argument("--session-id", default=None)
+    p_ev.add_argument("--normalized-path", default=None)
 
     p_g = sub.add_parser("render-guidelines", help="stdin {entities: [...]} -> guideline pages")
     p_g.add_argument("--rewrite", action="store_true")
@@ -2711,6 +3040,7 @@ def main(argv: list[str] | None = None) -> int:
         help="After writing the skill, archive any atomic guideline whose tags/title indicate it's covered by this skill.",
     )
     sub.add_parser("update-config", help="stdin patch -> _config.yaml")
+    sub.add_parser("dump-evidence", help="stdout: corpus of evidence observations as JSON")
     sub.add_parser("dump-guidelines", help="stdout: corpus of atomic guidelines as JSON")
     sub.add_parser("dump-summaries", help="stdout: corpus of summaries as JSON")
     sub.add_parser("catalog", help="refresh indexes, _index.jsonl, summary frontmatter metrics")
@@ -2718,12 +3048,14 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     handlers = {
         "render-summary": cmd_render_summary,
+        "render-evidence": cmd_render_evidence,
         "render-guidelines": cmd_render_guidelines,
         "render-cluster": cmd_render_cluster,
         "render-task": cmd_render_task,
         "render-subtask": cmd_render_subtask,
         "render-skill": cmd_render_skill,
         "update-config": cmd_update_config,
+        "dump-evidence": cmd_dump_evidence,
         "dump-guidelines": cmd_dump_guidelines,
         "dump-summaries": cmd_dump_summaries,
         "catalog": cmd_catalog,

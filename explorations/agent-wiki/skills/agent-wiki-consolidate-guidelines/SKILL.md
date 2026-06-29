@@ -44,6 +44,16 @@ Read the file:
 Read /tmp/guidelines.json
 ```
 
+Optionally read evidence for member guidelines' source sessions when deciding
+whether guidelines share a real rule:
+
+```bash
+uv run python explorations/agent-wiki/skills/scripts/build_agent_wiki.py dump-evidence > /tmp/evidence.json
+```
+
+Evidence may support clustering, but cluster titles, takeaways, slugs, and tags
+must be abstracted from the guideline rule, not copied from raw evidence.
+
 ### Step 2: Decide groupings
 
 For each candidate cluster:
@@ -61,6 +71,9 @@ Rules:
    references, evaluator behavior, or benchmark-specific artifact names, skip
    it or rewrite the takeaway as a genuinely dataset-agnostic process rule.
 1. **Don't cluster unrelated guidelines just to clean up the listing.** A cluster needs a real shared rule, not a shared topic.
+1a. **Don't cluster on evidence vocabulary alone.** A shared sequence shape
+    such as "inspect -> act -> verify" is not enough unless the member
+    guidelines share an actionable rule.
 2. **Don't merge content across atomic pages.** Each atomic page stays whole. The cluster's body summarizes the *theme* and links to members.
 3. **Don't propose a cluster for a single guideline.** Wait for ≥2 members.
 4. **Don't re-author an existing cluster** unless members materially changed. Skip clusters that already exist with the same membership (`existing_clusters` field below).

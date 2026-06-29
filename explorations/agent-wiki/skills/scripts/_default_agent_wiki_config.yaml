@@ -4,6 +4,7 @@ schema_version: 1
 # (the `id:` frontmatter on each guideline page; mirrors `_id_index.json`).
 tags:
   guideline: {}
+  evidence: {}
   # When you author guidelines, add entries like:
   #   04474b0794e6: [exif, stdlib, fallback, minimal-env]
 

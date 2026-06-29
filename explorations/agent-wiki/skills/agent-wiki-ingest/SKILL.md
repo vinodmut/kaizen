@@ -28,6 +28,7 @@ The pipeline:
 1.  Bootstrap  create wiki scaffold + seed catalog                  (skip if wiki exists)
 1.5 Skip       drop traces whose summaries/<sid>.md already exists   [pre-flight — idempotency]
 2.  Summarize  1 subagent / new-trace → summaries/<sid>.md          [PARALLEL]
+2.5 Evidence   1 subagent / new-trace → evidence/*.md               [PARALLEL]
 3.  Extract    1 subagent / new-trace → guidelines/*.md (+tags)     [SEQUENTIAL]
 4.  Synthesize 1 subagent / new-trace → skills/<slug>/ --archive-covered  [SEQUENTIAL]
 4.5 Compare    success/failure contrasts → contrastive guidelines   [CONDITIONAL]
@@ -115,7 +116,7 @@ rest of the pipeline iterates.
 If `<wiki-root>/_index.jsonl` does **not** exist:
 
 ```bash
-mkdir -p <wiki-root>/{summaries,guidelines,tasks,skills}
+mkdir -p <wiki-root>/{summaries,evidence,guidelines,tasks,skills}
 uv run python explorations/agent-wiki/skills/scripts/build_agent_wiki.py \
   --wiki-root <wiki-root> catalog
 ```
@@ -163,7 +164,7 @@ for f in <trace-glob>; do
 done
 ```
 
-The `NEW:` lines are the work-list for Steps 2/3/4. If every trace is
+The `NEW:` lines are the work-list for Steps 2/2.5/3/4. If every trace is
 skipped, that's fine — jump straight to Steps 5–6 (the tail always runs).
 
 **Override.** To force reprocessing of an already-ingested trace, keep it in
@@ -192,6 +193,35 @@ Each subagent pipes its summary JSON to:
 echo '<json>' | uv run python explorations/agent-wiki/skills/scripts/build_agent_wiki.py --wiki-root <wiki-root> render-summary
 ```
 
+## Step 2.5 — Extract evidence (parallel subagents)
+
+Spawn **one subagent per new-trace**, **all in parallel**. Each acts as
+`agent-wiki-extract-evidence` (point it at that skill's SKILL.md). In each
+subagent prompt include:
+
+- the analysis-JSON path and the `--wiki-root`
+- the trace's **agent** (`bob`, `claude-code`, …)
+- the bob adapter notes, only if the trace came from bob
+- instructions that this pass is observational only: do not produce guidelines,
+  skills, clusters, task categories, or topical labels
+- instructions that evidence patterns must be domain-agnostic and must not use
+  hardcoded tool names, domains, benchmark classes, task ids, exact filenames,
+  expected answers, evaluator behavior, or hidden schemas as normalized labels
+- instructions to preserve provenance through message spans and short redacted
+  snippets
+- **do NOT run `catalog`**
+
+Pipe via a temp file, not `echo`:
+
+```bash
+cat /tmp/evidence-payload.json | uv run python explorations/agent-wiki/skills/scripts/build_agent_wiki.py --wiki-root <wiki-root> render-evidence
+```
+
+The output is audit/provenance material under `evidence/`. Evidence is not
+direct advice and is not recall-preferred. `render-evidence` writes only
+individual evidence pages during this parallel pass; shared indexes are rebuilt
+later by `catalog`.
+
 ## Step 3 — Extract guidelines (sequential subagents)
 
 Spawn **one subagent per new-trace, one at a time** (wait for each before
@@ -200,6 +230,9 @@ starting the next — they share `guidelines/_id_index.json` and
 prompt:
 
 - the analysis-JSON path, `--wiki-root`, `agent`, and bob adapter notes
+- the corresponding evidence page(s) for the session, if present
+- instruct it to use evidence items as the primary candidate pool while treating
+  evidence as observations, not instructions
 - the list of **existing guideline slugs** (from prior traces this run) so it
   suppresses near-duplicates
 - instruct it to apply `agent-wiki-extract-guidelines`' leakage and generality
@@ -226,6 +259,9 @@ plus `_archived/` moves). Each acts as `agent-wiki-synthesize-skill`. In each
 prompt:
 
 - the analysis-JSON path, `--wiki-root`, `agent`, bob adapter notes
+- the corresponding evidence page(s) for the session, if present
+- instruct it to inspect evidence first and use sequence/transition evidence to
+  decide whether there is a reusable procedure
 - the list of **existing skill slugs** so it doesn't re-author one
 - tell it to **decide promote-vs-skip** per that skill's "When To Use" rubric
   and leakage gate (trivial single-command recipes, benchmark-specific recipes,
@@ -340,8 +376,8 @@ were considered and rejected.
    self-skips individual clusters; the *pass* never skips.
 2. **One subagent per (trace × pass).** Don't batch multiple traces into one
    subagent — it bloats context and muddies provenance.
-3. **Parallel only for summarize.** Extract, synthesize, and consolidate all
-   touch shared index/config state — keep them sequential.
+3. **Parallel only for summarize and evidence.** Extract, synthesize, and
+   consolidate all touch shared index/config state — keep them sequential.
 4. **Subagents never `catalog`.** Only the orchestrator does, once, at the
    end. A mid-run catalog wastes work and can race with in-flight writes.
 5. **Pass `agent:` through.** Bob traces are `bob`, not `claude-code`. The
