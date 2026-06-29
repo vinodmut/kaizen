@@ -32,6 +32,9 @@ Use this skill when a trajectory captured:
 - A **non-trivial successful workflow** — multiple tool calls, with at least
   one custom script or non-obvious sequence — that produced the answer after
   trial-and-error. The eventual happy path is worth saving.
+- A **procedure-shaped guideline** whose trigger, ordered steps, validation, and
+  fallback are all supported by trajectory-visible behavior and are concrete
+  enough for a future agent to execute.
 - A **reusable command sequence or script** the agent wrote. Particularly
   if the agent had to reconstruct it across multiple attempts.
 - A pattern a future agent will hit on a similar-but-not-identical task —
@@ -104,6 +107,19 @@ or task ids into the skill name, trigger, tags, workflow, or scripts. If the
 procedure is not useful without the original domain or benchmark context, skip
 it.
 
+Also inspect existing guideline pages for the same session. If a guideline is
+procedure-shaped, treat it as a skill candidate when it has:
+
+- a broad trigger,
+- ordered steps,
+- validation checks,
+- a fallback path or clear failure boundary,
+- evidence that each part came from trajectory-visible actions.
+
+Promote the executable procedure, not the original task. If any part only works
+because of answer knowledge, task-specific data, hidden references, or evaluator
+feedback, skip promotion.
+
 #### 3c. The successful workflow
 
 The **final, working** tool sequence — the one that produced the answer.
@@ -165,6 +181,15 @@ task context, not the narrow original request.
     "<step 1: an instruction to the future agent>",
     "<step 2: ...>"
   ],
+  "validation_steps": [
+    "<optional: checks to run before trusting the result>"
+  ],
+  "fallback_steps": [
+    "<optional: recovery path when the primary workflow fails>"
+  ],
+  "evidence_basis": [
+    "<optional: short trajectory-visible observations supporting this workflow>"
+  ],
   "scripts": [
     {
       "name": "<action>.py",
@@ -185,6 +210,12 @@ Notes on each field:
   instruction the agent will follow. Reference scripts as
   `Run \`bash <wiki>/skills/<name>/scripts/<file>.sh\`` (the helper
   resolves `<wiki>` at write time).
+- **`validation_steps`** — optional checks the future agent should use before
+  trusting the result. Include only checks supported by the source trajectory.
+- **`fallback_steps`** — optional recovery path or stopping condition when the
+  primary workflow fails. Include limitations rather than claiming success.
+- **`evidence_basis`** — optional short provenance notes that explain why the
+  procedure was promoted.
 - **`scripts`** — optional. If the workflow needs a non-trivial script,
   include it here. The helper writes it to
   `<wiki>/skills/<name>/scripts/<file>` and references it in the
@@ -283,17 +314,20 @@ invokes any sibling scripts via Bash.
 3. **Don't promote one-shots.** A skill is worth synthesizing only if
    the trigger is plausibly recurring. Single-use trajectories should
    stay as guidelines (or nothing at all).
-4. **Don't paraphrase failure.** The skill describes what *worked*. If
+4. **Require procedural completeness.** Prefer promotion when a workflow has a
+   trigger, ordered steps, validation, and fallback. If the source only supports
+   a broad habit, leave it as a guideline.
+5. **Don't paraphrase failure.** The skill describes what *worked*. If
    you're tempted to write "this skill avoids the problem where exiftool
    isn't installed," restate as "uses Pillow / stdlib struct; works in
    environments without system EXIF tools."
-5. **Keep scripts minimal.** Strip log lines, debug prints, validation
+6. **Keep scripts minimal.** Strip log lines, debug prints, validation
    that wasn't actually exercised in the trajectory.
-6. **Generality is everything.** A skill named `extract-gps-from-jpeg`
+7. **Generality is everything.** A skill named `extract-gps-from-jpeg`
    will not match a lens-model query. If the trajectory only exercised
    one EXIF field, name the skill broadly (`extract-jpeg-exif-camera-optics`)
    so future agents recognize its applicability to siblings.
-7. **No benchmark leakage.** Do not preserve task names, dataset entities,
+8. **No benchmark leakage.** Do not preserve task names, dataset entities,
    hidden-reference behavior, exact expected outputs, one-off schema keys,
    or evaluator-derived facts in the skill name, description, trigger, steps,
    scripts, tags, or examples.

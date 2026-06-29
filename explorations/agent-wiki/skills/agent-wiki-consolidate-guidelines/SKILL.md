@@ -70,6 +70,11 @@ Rules:
    cluster depends on task ids, dataset names, exact answer values, hidden
    references, evaluator behavior, or benchmark-specific artifact names, skip
    it or rewrite the takeaway as a genuinely dataset-agnostic process rule.
+0a. **Preserve procedural shape.** If members include ordered steps,
+    validation, fallback, or evidence-basis sections, keep the cluster takeaway
+    procedural. Do not flatten an executable procedure into a generic slogan.
+    Separate broad principles from stepwise workflows when they would be used
+    differently by a future agent.
 1. **Don't cluster unrelated guidelines just to clean up the listing.** A cluster needs a real shared rule, not a shared topic.
 1a. **Don't cluster on evidence vocabulary alone.** A shared sequence shape
     such as "inspect -> act -> verify" is not enough unless the member
@@ -120,9 +125,12 @@ re-rendered against current member content.
 1. **Write the takeaway first.** If you can't articulate one shared rule in a sentence, the cluster doesn't exist.
 2. **Be conservative.** Two false-positive clusters cost more than two un-clustered duplicates.
 3. **Preserve atomic provenance.** A reader should be able to navigate cluster → member → source trajectory in two clicks.
-4. **Don't re-cluster within an existing cluster.** Sub-themes don't justify nesting.
-5. Keep cluster titles, descriptions, takeaways, tags, and slugs free of
+4. **Preserve reusable procedure detail.** Cluster pages should keep trigger,
+   ordered action, validation, and fallback visible when those are the shared
+   rule.
+5. **Don't re-cluster within an existing cluster.** Sub-themes don't justify nesting.
+6. Keep cluster titles, descriptions, takeaways, tags, and slugs free of
    benchmark task names, dataset domains, expected outputs, and evaluator
    terms unless the wiki is explicitly a private audit log rather than a
    reusable agent-wiki.
-6. Always tail-call `catalog` after the cluster loop.
+7. Always tail-call `catalog` after the cluster loop.

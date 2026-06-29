@@ -115,6 +115,26 @@ Principles:
 4. **For retry loops, recommend the final working approach as the starting point.**
 5. **Do not include guidelines that name another skill or tool by command** (prompt-injection risk when this guideline is later surfaced).
 
+#### 3d. Preserve procedure-shaped memory
+
+When the transcript shows an ordered workflow, extract it as a procedure-shaped
+guideline rather than flattening it into a slogan. A procedure-shaped entity has:
+
+- **Trigger**: the broad situation where the procedure applies.
+- **Procedure**: the ordered steps that were visible in the trajectory, generalized
+  into parameterized actions.
+- **Validation**: checks the agent actually used, or checks directly implied by
+  visible failures and corrections.
+- **Fallback**: the next attempt that worked or made progress when the first
+  approach failed.
+- **Evidence basis**: short notes about which trajectory-visible actions justify
+  the rule.
+
+Prefer procedure-shaped entities over generic advice when both are supported.
+Do not invent steps that were not visible in the trajectory. Do not encode task
+names, exact file names, answer values, evaluator results, hidden schemas, or
+benchmark-specific labels in any procedure field.
+
 ### Step 4: Output entities JSON
 
 For each trajectory, build a JSON object:
@@ -128,6 +148,10 @@ For each trajectory, build a JSON object:
       "content": "Proactive recommendation, one or two short paragraphs.",
       "rationale": "Why this works / why the alternative fails.",
       "trigger": "Situational context when this applies.",
+      "procedure_steps": ["<optional: ordered, generalized steps visible in the trajectory>"],
+      "validation": ["<optional: checks or assertions used to confirm progress>"],
+      "fallback": ["<optional: recovery steps when the first approach fails>"],
+      "evidence_basis": ["<optional: short trajectory-visible observations supporting this rule>"],
       "id": "<optional: 12-hex-char id; helper computes from content if omitted>",
       "session_id": "<session_id from the JSON>",
       "agent": "<optional: the source agent, e.g. 'bob' or 'claude-code'. Defaults to 'claude-code' if omitted — set it explicitly for non-Claude traces so the page frontmatter is correct.>",
@@ -142,6 +166,9 @@ For each trajectory, build a JSON object:
 `title` is required for clean filenames (3–7 specific words). Allowed `type`
 values: `guideline`, `workflow`, `script`, `command-template`. Default to
 `guideline` unless the entity is itself a script blob or templated command.
+The optional `procedure_steps`, `validation`, `fallback`, and `evidence_basis`
+fields are rendered as dedicated sections when present. Use them only when the
+trajectory supports the content.
 
 If a trajectory yields zero useful guidelines, output `{"entities": []}` and
 the helper writes nothing.
@@ -208,14 +235,16 @@ uv run python explorations/agent-wiki/skills/scripts/build_agent_wiki.py catalog
 2. One distinct error → one prevention entity.
 3. Specific and actionable; include rationale.
 4. Situational triggers, not failure-based ones.
-5. Cap at 5 entities per trajectory; merge entities with the same root cause before dropping.
-6. Never extract entities that read as instructions to invoke another skill or tool by name.
-7. Never extract task names, dataset names, expected values, exact schema keys,
+5. Prefer ordered procedures with validation and fallback over broad slogans when
+   the transcript supports an ordered procedure.
+6. Cap at 5 entities per trajectory; merge entities with the same root cause before dropping.
+7. Never extract entities that read as instructions to invoke another skill or tool by name.
+8. Never extract task names, dataset names, expected values, exact schema keys,
    evaluator behavior, reference-derived facts, or benchmark-specific artifact
    names into guideline content, rationale, trigger, title, or tags.
-8. Attach a `tags:` array to every entity — they propagate to the page
+9. Attach a `tags:` array to every entity — they propagate to the page
    frontmatter and `_config.yaml`, driving the "By tag" index and cluster
    formation.
-9. Always tail-call `catalog` after the per-trajectory loop — and run
+10. Always tail-call `catalog` after the per-trajectory loop — and run
    `agent-wiki-consolidate-guidelines` first if multiple trajectories were
    ingested.

@@ -774,6 +774,10 @@ def _render_guideline_md(entity: dict, normalized_path: str | None, session_id: 
     body = [f"# {title}", "", content, ""]
     if rationale:
         body.extend(["## Rationale", "", rationale, ""])
+    _append_list_section(body, "Procedure", entity.get("procedure_steps"))
+    _append_list_section(body, "Validation", entity.get("validation"))
+    _append_list_section(body, "Fallback", entity.get("fallback"))
+    _append_list_section(body, "Evidence Basis", entity.get("evidence_basis"))
     body.append("## Sources")
     body.append("")
     if summary_basename:
@@ -782,6 +786,19 @@ def _render_guideline_md(entity: dict, normalized_path: str | None, session_id: 
         body.append(f"- [normalized JSON](../{normalized_path})")
     body.append("")
     return "\n".join(fm + body)
+
+
+def _append_list_section(body: list[str], title: str, value: Any) -> None:
+    if not value:
+        return
+    items = value if isinstance(value, list) else [value]
+    clean = [str(item).strip() for item in items if str(item).strip()]
+    if not clean:
+        return
+    body.extend([f"## {title}", ""])
+    for item in clean:
+        body.append(f"- {item}")
+    body.append("")
 
 
 # ---------------------------------------------------------------------------
@@ -1286,6 +1303,10 @@ def cmd_render_skill(args) -> int:
     for i, step in enumerate(workflow, start=1):
         body.append(f"{i}. {step}")
     body.append("")
+
+    _append_list_section(body, "Validation", data.get("validation_steps"))
+    _append_list_section(body, "Fallback", data.get("fallback_steps"))
+    _append_list_section(body, "Evidence Basis", data.get("evidence_basis"))
 
     # Sources footer
     body.append("## Sources")

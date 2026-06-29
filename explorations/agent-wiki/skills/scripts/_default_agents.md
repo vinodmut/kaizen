@@ -110,6 +110,11 @@ scripts you can run via Bash). Skills are **recall-preferred over
 guidelines** because they're directly executable; an atomic guideline is
 free-text advice you have to interpret.
 
+Some guideline pages are also procedure-shaped: they include explicit
+Procedure, Validation, Fallback, or Evidence Basis sections. When no matching
+skill exists, prefer these procedure-shaped guidelines over broad principle
+pages because they preserve an executable workflow and its checks.
+
 ## How to retrieve (advisory)
 
 There's no mandated scoring algorithm. A reasonable recipe:
@@ -119,13 +124,16 @@ There's no mandated scoring algorithm. A reasonable recipe:
 2. **Read `_index.jsonl`** end-to-end. It's small (typically 50–200 rows).
 3. **Filter** rows whose `tags` overlap your topical tags, OR whose
    `trigger` substring-matches your task description.
-4. **Prefer cluster pages** when both a cluster and its members match —
+4. **Prefer skill rows** when a matching skill exists. If no skill matches,
+   prefer procedure-shaped guidelines or clusters whose takeaways include
+   ordered action, validation, and fallback.
+5. **Prefer cluster pages** when both a cluster and its members match —
    the cluster gives you the consolidated rule plus links down. Each
    member's `superseded_by:` field tells you which cluster supersedes it.
-5. **Read the top 2–5** matches (clusters + standalone atomics not
+6. **Read the top 2–5** matches (clusters + standalone atomics not
    superseded by any matched cluster). For each, follow the `link` and
    read the page body.
-6. **Decide** which guidelines apply to your current task. State them
+7. **Decide** which guidelines apply to your current task. State them
    briefly to the user before acting if helpful, especially when a
    guideline overrides what they asked for.
 
