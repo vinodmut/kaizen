@@ -10,6 +10,7 @@ from datetime import datetime
 from altk_evolve.schema.conflict_resolution import EntityUpdate
 from altk_evolve.schema.core import Entity, RecordedEntity
 from altk_evolve.schema.exceptions import EvolveException
+from altk_evolve.schema.lifecycle import LIFECYCLE_KEYS
 from altk_evolve.schema.provenance import identity, attach_sources, sources
 
 
@@ -45,6 +46,12 @@ def existing_memory_metadata(
         metadata.pop(key, None)
         if key in old.metadata:
             metadata[key] = old.metadata[key]
+    # Merging evidence into a stored memory must not change whether it is served: a
+    # candidate contributor cannot demote an active memory or revive a retired one.
+    for key in LIFECYCLE_KEYS:
+        metadata.pop(key, None)
+        if key in old.metadata:
+            metadata[key] = deepcopy(old.metadata[key])
     metadata = attach_sources(metadata, old, contributors, supersedes=decision.supersedes and bool(contributors), associated_at=observed_at)
     if metadata.get("sources"):
         metadata["memory_revision"] = int(old.metadata.get("memory_revision", 1)) + (decision.event == "UPDATE")

@@ -686,6 +686,7 @@ class EvolveClient:
         min_support: int | None = None,
         evidence_filter: str | None = None,
         limit: int = 10000,
+        statuses: set[str] | None = None,
     ) -> "GuidelineSelection":
         """Select the always-on core plus the top-k task-relevant guidelines for a task.
 
@@ -702,11 +703,14 @@ class EvolveClient:
             min_support: Non-destructive support floor on the candidate pool. Defaults to config.
             evidence_filter: ``"all"`` / ``"success"`` / ``"failure"``. Defaults to config.
             limit: Max guideline entities to fetch.
+            statuses: Lifecycle statuses to select from (see ``schema.lifecycle``); a guideline
+                without a status counts as active. ``None`` selects regardless of status.
 
         Returns:
             A ``GuidelineSelection`` (core + retrieved).
         """
         from altk_evolve.llm.guidelines.retrieval import GuidelineSelection, select_guidelines
+        from altk_evolve.schema.lifecycle import filter_by_status
 
         top_k = top_k if top_k is not None else getattr(self.config, "retrieval_top_k", 10)
         core_support = core_support if core_support is not None else getattr(self.config, "core_support", 3)
@@ -718,6 +722,7 @@ class EvolveClient:
 
         entities = self.get_all_entities(namespace_id, filters={"type": "guideline"}, limit=limit)
         entities = _filter_by_evidence(entities, str(evidence_filter))
+        entities = filter_by_status(entities, statuses)
         if not entities:
             return GuidelineSelection(core=[], retrieved=[])
 
