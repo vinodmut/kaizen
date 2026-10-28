@@ -16,6 +16,7 @@ from altk_evolve.cli.processing import profiles_app, processors_app, processing_
 from altk_evolve.frontend.client.evolve_client import EvolveClient
 from altk_evolve.cli.retention import register_retention_commands
 from altk_evolve.schema.core import Entity
+from altk_evolve.schema.lifecycle import GuidelineStatus, filter_by_status, set_guideline_status, status_of
 from altk_evolve.schema.exceptions import (
     EvolveException,
     NamespaceAlreadyExistsException,
@@ -30,6 +31,7 @@ skills_app = typer.Typer(help="Skill management commands")
 viz_app = typer.Typer(help="Visualization commands")
 hooks_app = typer.Typer(help="Hook seam management commands")
 retention_app = typer.Typer(help="Retention policies, schedules, and execution", no_args_is_help=True)
+cortex_app = typer.Typer(help="Cortex proxy integration", no_args_is_help=True)
 
 app.add_typer(namespaces_app, name="namespaces")
 app.add_typer(entities_app, name="entities")
@@ -38,6 +40,7 @@ app.add_typer(skills_app, name="skills")
 app.add_typer(viz_app, name="viz")
 app.add_typer(hooks_app, name="hooks")
 app.add_typer(retention_app, name="retention")
+app.add_typer(cortex_app, name="cortex")
 
 
 app.add_typer(profiles_app, name="processing-profiles")
@@ -153,15 +156,25 @@ def list_entities(
     namespace: Annotated[str, typer.Argument(help="Namespace to list entities from")],
     type_filter: Annotated[Optional[str], typer.Option("--type", "-t", help="Filter by entity type")] = None,
     limit: Annotated[int, typer.Option(help="Maximum number of entities to list")] = 100,
+    status: Annotated[
+        Optional[str], typer.Option("--status", help="Only guidelines with this lifecycle status (candidate, active, retired)")
+    ] = None,
 ):
     """List all entities in a namespace."""
     client = get_client()
 
     try:
         filters = {"type": type_filter} if type_filter else None
+        if status:
+            filters = {"type": "guideline"}
         entities = client.get_all_entities(namespace, filters=filters, limit=limit)
+        if status:
+            entities = filter_by_status(entities, {status})
     except NamespaceNotFoundException:
         console.print(f"[red]Namespace '{namespace}' not found.[/red]")
+        raise typer.Exit(1)
+    except EvolveException as e:
+        console.print(f"[red]{e}[/red]")
         raise typer.Exit(1)
 
     if not entities:
@@ -172,6 +185,8 @@ def list_entities(
     table.add_column("ID", style="cyan", max_width=20)
     table.add_column("Type", style="magenta")
     table.add_column("Content", max_width=60)
+    if status:
+        table.add_column("Status", style="green")
     table.add_column("Created At", style="dim")
 
     for entity in entities:
@@ -180,12 +195,11 @@ def list_entities(
 
         if len(content_str) > 60:
             content_str = content_str[:57] + "..."
-        table.add_row(
-            str(entity.id),
-            entity.type,
-            content_str,
-            entity.created_at.strftime("%Y-%m-%d %H:%M"),
-        )
+        row = [str(entity.id), entity.type, content_str]
+        if status:
+            row.append(status_of(entity))
+        row.append(entity.created_at.strftime("%Y-%m-%d %H:%M"))
+        table.add_row(*row)
 
     console.print(table)
     console.print(f"\n[dim]Total: {len(entities)} entities[/dim]")
@@ -282,6 +296,41 @@ def delete_entity(
     except EvolveException as e:
         console.print(f"[red]Error deleting entity: {e}[/red]")
         raise typer.Exit(1)
+
+
+def _set_status(namespace: str, entity_id: str, to: GuidelineStatus, reason: str | None, by: str | None) -> None:
+    client = get_client()
+    try:
+        entity = set_guideline_status(client, namespace, entity_id, to, by=by, reason=reason)
+    except NamespaceNotFoundException:
+        console.print(f"[red]Namespace '{namespace}' not found.[/red]")
+        raise typer.Exit(1)
+    except EvolveException as e:
+        console.print(f"[red]{e}[/red]")
+        raise typer.Exit(1)
+    console.print(f"[green]{entity_id}[/green] is now [bold]{status_of(entity)}[/bold]")
+
+
+@entities_app.command("promote")
+def promote_entity(
+    namespace: Annotated[str, typer.Argument(help="Namespace containing the guideline")],
+    entity_id: Annotated[str, typer.Argument(help="ID of the candidate guideline to activate")],
+    reason: Annotated[Optional[str], typer.Option("--reason", help="Why it was accepted")] = None,
+    by: Annotated[Optional[str], typer.Option("--by", help="Reviewer recorded in status_history")] = None,
+):
+    """Accept a guideline: mark it active so consumers that serve only active guidelines retrieve it."""
+    _set_status(namespace, entity_id, "active", reason, by)
+
+
+@entities_app.command("retire")
+def retire_entity(
+    namespace: Annotated[str, typer.Argument(help="Namespace containing the guideline")],
+    entity_id: Annotated[str, typer.Argument(help="ID of the guideline to retire")],
+    reason: Annotated[str, typer.Option("--reason", help="Why it is being withdrawn")],
+    by: Annotated[Optional[str], typer.Option("--by", help="Reviewer recorded in status_history")] = None,
+):
+    """Withdraw a guideline without deleting it; its content and status history are kept."""
+    _set_status(namespace, entity_id, "retired", reason, by)
 
 
 @entities_app.command("search")
@@ -587,6 +636,68 @@ def sync_phoenix(
     except Exception as e:
         console.print(f"[red]Sync failed: {e}[/red]")
         raise typer.Exit(1)
+
+
+@sync_app.command("cortex")
+def sync_cortex_cmd(
+    cortex_url: Annotated[Optional[str], typer.Option("--cortex-url", help="Cortex session API (default $EVOLVE_CORTEX_URL)")] = None,
+    namespace: Annotated[Optional[str], typer.Option("--namespace", "-n", help="Target namespace")] = None,
+    session: Annotated[Optional[list[str]], typer.Option("--session", "-s", help="Ingest only this session (repeatable)")] = None,
+    idle_minutes: Annotated[float, typer.Option("--idle-minutes", help="Only sessions idle at least this long")] = 15,
+    min_new_turns: Annotated[int, typer.Option("--min-new-turns", help="Skip sessions with fewer new turns")] = 2,
+    dry_run: Annotated[bool, typer.Option("--dry-run", help="Print the converted trajectory; do not process or advance cursors")] = False,
+):
+    """Learn candidate guidelines from sessions recorded by a Cortex proxy."""
+    from altk_evolve.config.evolve import evolve_config
+    from altk_evolve.sync.cortex_sync import CortexSessionClient, default_cursor_store, sync_cortex
+
+    cortex = CortexSessionClient(cortex_url)
+    try:
+        results = sync_cortex(
+            None if dry_run else get_client(),
+            cortex,
+            namespace_id=namespace or evolve_config.namespace_id,
+            cursors=default_cursor_store(),
+            idle_minutes=idle_minutes,
+            session_ids=session or None,
+            min_new_turns=min_new_turns,
+            dry_run=dry_run,
+        )
+    finally:
+        cortex.close()
+
+    if dry_run:
+        for result in results:
+            print(json.dumps({"session_id": result.session_id, "status": result.status, "trajectory": result.trajectory}, indent=2))
+        return
+    table = Table(title="Cortex Sync Results")
+    table.add_column("Session", style="cyan")
+    table.add_column("Status")
+    table.add_column("New turns", justify="right")
+    table.add_column("Seq range", style="dim")
+    table.add_column("Guideline changes", justify="right")
+    for result in results:
+        seq = f"{result.first_seq}-{result.last_seq}" if result.first_seq is not None else ""
+        table.add_row(result.session_id, result.status, str(result.new_turns), seq, str(len(result.guidelines)))
+    console.print(table)
+    if any(r.status.startswith("error") for r in results):
+        raise typer.Exit(1)
+
+
+@cortex_app.command("serve")
+def cortex_serve(
+    host: Annotated[str, typer.Option(help="Interface to bind")] = "127.0.0.1",
+    port: Annotated[int, typer.Option(help="Port to listen on")] = 8202,
+):
+    """Serve the authenticated API the Cortex evolve plugin calls (needs EVOLVE_API_TOKEN[_FILE])."""
+    import uvicorn
+
+    from altk_evolve.frontend.api.cortex import configured_token, create_app
+
+    if configured_token() is None:
+        err_console.print("[red]Set EVOLVE_API_TOKEN or EVOLVE_API_TOKEN_FILE; the Cortex API never serves unauthenticated.[/red]")
+        raise typer.Exit(1)
+    uvicorn.run(create_app(), host=host, port=port, log_level="info")
 
 
 # =============================================================================
